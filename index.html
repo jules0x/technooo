@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DRIFT // Minimal &amp; Dark Space Console</title>
+  </head>
+  <body>
+    <!-- Top Transport & Performance FX Bar -->
+    <header id="transport-bar">
+      <div class="dock-group">
+        <button id="btn-play-stop" class="ctrl-btn play-btn" title="Play / Stop (Enter)">
+          <span class="hotkey">ENT</span>
+          <strong id="val-play-stop">▶ PLAY</strong>
+        </button>
+        <button id="btn-shuffle" class="ctrl-btn accent-btn" title="Musical Shuffle (U)">
+          <span class="hotkey">U</span> SHUFFLE
+        </button>
+        <button id="btn-undo" class="ctrl-btn" title="Undo (Cmd/Ctrl+Z)">
+          <span class="hotkey">⌘Z</span> UNDO
+        </button>
+      </div>
+
+      <div class="dock-group">
+        <span id="status-dot" class="dot"></span>
+        <span id="status-text">PAUSED</span>
+        <span class="sep">|</span>
+        <span id="mode-display">MINIMAL 100%</span>
+        <span class="sep">|</span>
+        <button id="btn-bpm-down" class="ctrl-btn compact" title="BPM -5 ([)">-</button>
+        <span id="bpm-display" class="bpm-readout">125 BPM</span>
+        <button id="btn-bpm-up" class="ctrl-btn compact" title="BPM +5 (])">+</button>
+      </div>
+
+      <div class="dock-group">
+        <button id="btn-fx-drop" class="ctrl-btn fx-btn" title="Hold for Breakdown (Space)">
+          <span class="hotkey">SPC</span> DROP
+        </button>
+        <button id="btn-fx-tape" class="ctrl-btn fx-btn" title="Hold for Tape Sag (Z)">
+          <span class="hotkey">Z</span> TAPE
+        </button>
+        <button id="btn-fx-stutter" class="ctrl-btn fx-btn" title="Hold for Beat Stutter (X)">
+          <span class="hotkey">X</span> STUTTER
+        </button>
+        <button id="help-btn" class="ctrl-btn" title="Keyboard Shortcuts (?)">
+          <span class="hotkey">?</span> KEYS
+        </button>
+      </div>
+    </header>
+
+    <!-- 3-Column Component Console: Component Stack (Left) | Live Stage (Center) | Component Board (Right) -->
+    <main id="board-main">
+      <!-- LEFT: PRIMARY COMPONENT STACK -->
+      <aside id="stack-rack" class="side-rack">
+        <div class="stack-header">
+          <span class="rack-title">COMPONENT STACK</span>
+          <button id="btn-stack-add" class="ctrl-btn compact" title="Add / Toggle Board Modules">+ MODS</button>
+        </div>
+
+        <div id="module-picker" class="module-picker hidden">
+          <div class="picker-title">BOARD MODULES (CLICK TO TOGGLE)</div>
+          <div class="picker-grid" id="picker-grid">
+            <button class="picker-chip active" data-toggle-module="perc">PERC // DRUMS</button>
+            <button class="picker-chip active" data-toggle-module="patterns">PATTERN LOOP</button>
+            <button class="picker-chip active" data-toggle-module="bassTone">BASS &amp; STAB</button>
+            <button class="picker-chip active" data-toggle-module="lead">LEAD // SYNTH &amp; ARP</button>
+            <button class="picker-chip active" data-toggle-module="geom">GEO SHAPE</button>
+            <button class="picker-chip active" data-toggle-module="filter">FILTER, DRIVE &amp; LFO</button>
+            <button class="picker-chip active" data-toggle-module="pad">DRONE &amp; SPACE FX</button>
+            <button class="picker-chip active" data-toggle-module="modifiers">MODIFIERS &amp; BLEEPS</button>
+          </div>
+        </div>
+
+        <div class="rack-card stack-card">
+          <div class="rack-title">AUDIO CHANNELS <span class="rack-hint">CTRL+CLK PERC = ALL</span></div>
+          <div class="mute-grid" id="mixer-mutes">
+            <div class="mixer-row">
+              <button class="mute-btn" data-mute="kick" title="Click: Mute Kick · Ctrl+Click: Mute All Percussion"><span class="led"></span><span class="mute-name">KICK</span><span class="hotkey">1</span></button>
+              <input class="mixer-fader" type="range" min="0" max="120" value="80" data-level="kick" />
+              <span class="mixer-val" data-level-val="kick">80%</span>
+              <button class="stack-focus-btn" data-focus-module="perc" title="Focus Percussion Module">⌖</button>
+            </div>
+            <div class="mixer-row">
+              <button class="mute-btn" data-mute="perc" title="Click: Mute Perc · Ctrl+Click: Mute All Percussion"><span class="led"></span><span class="mute-name">PERC</span><span class="hotkey">2</span></button>
+              <input class="mixer-fader" type="range" min="0" max="120" value="80" data-level="perc" />
+              <span class="mixer-val" data-level-val="perc">80%</span>
+              <button class="stack-focus-btn" data-focus-module="perc" title="Focus Percussion Module">⌖</button>
+            </div>
+            <div class="mixer-row">
+              <button class="mute-btn" data-mute="hat" title="Click: Mute Hat · Ctrl+Click: Mute All Percussion (3)"><span class="led"></span><span class="mute-name">HAT</span><span class="hotkey">3</span></button>
+              <input class="mixer-fader" type="range" min="0" max="120" value="80" data-level="hat" />
+              <span class="mixer-val" data-level-val="hat">80%</span>
+              <button class="stack-focus-btn" data-focus-module="perc" title="Focus Percussion Module">⌖</button>
+            </div>
+            <div class="mixer-row">
+              <button class="mute-btn" data-mute="clap" title="Click: Mute Clap · Ctrl+Click: Mute All Percussion (4)"><span class="led"></span><span class="mute-name">CLAP</span><span class="hotkey">4</span></button>
+              <input class="mixer-fader" type="range" min="0" max="120" value="80" data-level="clap" />
+              <span class="mixer-val" data-level-val="clap">80%</span>
+              <button class="stack-focus-btn" data-focus-module="perc" title="Focus Percussion Module">⌖</button>
+            </div>
+            <div class="mixer-row">
+              <button class="mute-btn" data-mute="tom" title="Click: Mute Tom/Rim · Ctrl+Click: Mute All Percussion (5)"><span class="led"></span><span class="mute-name">TOM</span><span class="hotkey">5</span></button>
+              <input class="mixer-fader" type="range" min="0" max="120" value="80" data-level="tom" />
+              <span class="mixer-val" data-level-val="tom">80%</span>
+              <button class="stack-focus-btn" data-focus-module="perc" title="Focus Percussion Module">⌖</button>
+            </div>
+            <div class="mixer-row">
+              <button class="mute-btn" data-mute="bass" title="Mute Bass (6)"><span class="led"></span><span class="mute-name">BASS</span><span class="hotkey">6</span></button>
+              <input class="mixer-fader" type="range" min="0" max="120" value="80" data-level="bass" />
+              <span class="mixer-val" data-level-val="bass">80%</span>
+              <button class="stack-focus-btn" data-focus-module="geom" title="Focus Geo Shape / Bass Controls">⌖</button>
+            </div>
+            <div class="mixer-row">
+              <button class="mute-btn" data-mute="lead" title="Mute Lead / Arp (7)"><span class="led"></span><span class="mute-name">LEAD</span><span class="hotkey">7</span></button>
+              <input class="mixer-fader" type="range" min="0" max="120" value="80" data-level="lead" />
+              <span class="mixer-val" data-level-val="lead">80%</span>
+              <button class="stack-focus-btn" data-focus-module="lead" title="Focus Lead (Synth &amp; Arp)">⌖</button>
+            </div>
+            <div class="mixer-row">
+              <button class="mute-btn muted" data-mute="drone" title="Mute Drone / Pad (8)"><span class="led"></span><span class="mute-name">DRONE</span><span class="hotkey">8</span></button>
+              <input class="mixer-fader" type="range" min="0" max="120" value="80" data-level="drone" />
+              <span class="mixer-val" data-level-val="drone">80%</span>
+              <button class="stack-focus-btn" data-focus-module="pad" title="Focus Soundscape / Pad">⌖</button>
+            </div>
+            <div class="mixer-row">
+              <button class="mute-btn" data-mute="stab" title="Mute Chord Stab (9)"><span class="led"></span><span class="mute-name">STAB</span><span class="hotkey">9</span></button>
+              <input class="mixer-fader" type="range" min="0" max="120" value="80" data-level="stab" />
+              <span class="mixer-val" data-level-val="stab">80%</span>
+              <button class="stack-focus-btn" data-focus-module="bassTone" title="Focus Bass &amp; Stab Tone">⌖</button>
+            </div>
+          </div>
+          <div class="rack-row">
+            <button id="btn-unmute-all" class="ctrl-btn compact full-w">UNMUTE ALL</button>
+            <button id="btn-show-all-mods" class="ctrl-btn compact full-w" title="Show All Modules on Board">SHOW ALL</button>
+          </div>
+        </div>
+
+        <div class="rack-card stack-card">
+          <div class="rack-title">MODULATORS &amp; RELATIONS</div>
+          <div class="rel-list" id="stack-relations">
+            <button class="rel-row" data-focus-module="patterns" title="Multi-bar A/B/C/D Pattern Loops for Perc, Bass &amp; Lead">
+              <span class="rel-name">PATTERN LOOP</span>
+              <span class="rel-target" id="rel-patterns">1B / 1B / 1B</span>
+            </button>
+            <button class="rel-row" data-focus-module="geom" title="Geo Shape Cycler (relates to Bass, Arp, Pad, Filter)">
+              <span class="rel-name">GEO SHAPE</span>
+              <span class="rel-target" id="rel-geom">OFF</span>
+            </button>
+            <button class="rel-row" data-focus-module="filter" title="Filter, Drive &amp; LFO (FLT → Master Filter, PIT/PAN/CHS → Lead)">
+              <span class="rel-name">FILTER &amp; LFO</span>
+              <span class="rel-target" id="rel-filter">1.2k · OFF</span>
+            </button>
+            <button class="rel-row" data-focus-module="pad" title="Drone Pad &amp; Space FX">
+              <span class="rel-name">DRONE &amp; SPACE</span>
+              <span class="rel-target" id="rel-space">3/16 DARK</span>
+            </button>
+            <button class="rel-row" data-focus-module="modifiers" title="Modifiers &amp; Bleeps">
+              <span class="rel-name">MODS &amp; BLEEPS</span>
+              <span class="rel-target" id="rel-mods">CLEAN</span>
+            </button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- CENTER STAGE: 5-PANEL LIVE CANVAS -->
+      <section id="center-col">
+        <canvas id="stage"></canvas>
+      </section>
+
+      <!-- RIGHT: COMPONENT BOARD (2-COLUMN MODULE GRID) -->
+      <aside id="component-board" class="component-board">
+        <div id="ctx-keybar" class="ctx-keybar">
+          <span class="ctx-mod" id="ctx-mod-name">PERC // DRUMS</span>
+          <span class="ctx-keys" id="ctx-mod-keys">W/S: SWING · A/D: MINIMAL · Q: KICK · E: TONE · R: EUCLID · F: KIT</span>
+        </div>
+
+        <div class="rack-card" data-module="perc">
+          <div class="rack-head">
+            <span class="rack-title">PERC // DRUMS</span>
+            <span class="rel-pill" data-focus-module="perc">→ 1–5</span>
+            <button class="mod-hide-btn" data-hide-module="perc" title="Hide Module">×</button>
+          </div>
+          <div class="lfo-layout">
+            <div class="lfo-ctrls">
+              <div class="rack-row">
+                <span class="grp-lbl">KICK</span>
+                <div class="seg-group" id="grp-kick-char">
+                  <button class="seg-btn active" data-kick-char="tight">TGT</button>
+                  <button class="seg-btn" data-kick-char="sub">SUB</button>
+                  <button class="seg-btn" data-kick-char="punch">PCH</button>
+                </div>
+              </div>
+              <div class="rack-row">
+                <span class="grp-lbl">TONE</span>
+                <div class="seg-group" id="grp-perc-tone">
+                  <button class="seg-btn" data-perc-tone="low">LO</button>
+                  <button class="seg-btn active" data-perc-tone="mid">MID</button>
+                  <button class="seg-btn" data-perc-tone="high">HI</button>
+                </div>
+              </div>
+            </div>
+            <div class="knob-unit" id="knob-swing" data-knob="swing" title="Drag up/down: 16th-Note Swing">
+              <svg class="knob-svg" viewBox="0 0 44 44">
+                <circle class="knob-track" cx="22" cy="22" r="16" />
+                <circle class="knob-arc" cx="22" cy="22" r="16" />
+                <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+              </svg>
+              <span class="knob-val" id="val-knob-swing">0%</span>
+              <span class="knob-lbl">SWING</span>
+            </div>
+          </div>
+          <div class="rack-row">
+            <span class="grp-lbl">KIT</span>
+            <div class="seg-group wrap-group" id="grp-perc-kit">
+              <button class="seg-btn active" data-perc-kit="minimal">MIN</button>
+              <button class="seg-btn" data-perc-kit="indust">IND</button>
+              <button class="seg-btn" data-perc-kit="wood">WD</button>
+              <button class="seg-btn" data-perc-kit="glitch">GLT</button>
+              <button class="seg-btn" data-perc-kit="909">909</button>
+              <button class="seg-btn" data-perc-kit="dub">DUB</button>
+            </div>
+          </div>
+          <div class="rack-row">
+            <button id="btn-euclid" class="ctrl-btn compact full-w" title="Mutate Euclidean Perc">
+              EUCLID MUTATE
+            </button>
+          </div>
+        </div>
+
+        <div class="rack-card span-2" data-module="patterns">
+          <div class="rack-head">
+            <span class="rack-title">PATTERN LOOP (A / B / C / D)</span>
+            <span class="rel-pill" data-focus-module="lead">→ KICK · PERC · BASS · LEAD</span>
+            <button class="mod-hide-btn" data-hide-module="patterns" title="Hide Module">×</button>
+          </div>
+          <div class="pat-table">
+            <div class="pat-head-row">
+              <span></span>
+              <span class="pat-col-lbl">EDIT</span>
+              <span class="pat-col-lbl">LEN</span>
+              <div class="pat-seq-hdr">
+                <span>B1</span><span>B2</span><span>B3</span><span>B4</span>
+              </div>
+            </div>
+            <div class="pat-row" data-pat-row="kick">
+              <span class="pat-inst">KICK</span>
+              <div class="seg-group" data-pat-edit="kick">
+                <button class="seg-btn active" data-pat-slot="A">A</button>
+                <button class="seg-btn" data-pat-slot="B">B</button>
+                <button class="seg-btn" data-pat-slot="C">C</button>
+                <button class="seg-btn" data-pat-slot="D">D</button>
+              </div>
+              <div class="seg-group" data-pat-len="kick">
+                <button class="seg-btn active" data-len="1">1B</button>
+                <button class="seg-btn" data-len="2">2B</button>
+                <button class="seg-btn" data-len="3">3B</button>
+                <button class="seg-btn" data-len="4">4B</button>
+              </div>
+              <div class="pat-seq" data-pat-seq="kick">
+                <button class="pat-seq-btn" data-seq-idx="0">A</button>
+                <button class="pat-seq-btn dim" data-seq-idx="1">—</button>
+                <button class="pat-seq-btn dim" data-seq-idx="2">—</button>
+                <button class="pat-seq-btn dim" data-seq-idx="3">—</button>
+              </div>
+            </div>
+            <div class="pat-row" data-pat-row="perc">
+              <span class="pat-inst">PERC</span>
+              <div class="seg-group" data-pat-edit="perc">
+                <button class="seg-btn active" data-pat-slot="A">A</button>
+                <button class="seg-btn" data-pat-slot="B">B</button>
+                <button class="seg-btn" data-pat-slot="C">C</button>
+                <button class="seg-btn" data-pat-slot="D">D</button>
+              </div>
+              <div class="seg-group" data-pat-len="perc">
+                <button class="seg-btn active" data-len="1">1B</button>
+                <button class="seg-btn" data-len="2">2B</button>
+                <button class="seg-btn" data-len="3">3B</button>
+                <button class="seg-btn" data-len="4">4B</button>
+              </div>
+              <div class="pat-seq" data-pat-seq="perc">
+                <button class="pat-seq-btn" data-seq-idx="0">A</button>
+                <button class="pat-seq-btn dim" data-seq-idx="1">A</button>
+                <button class="pat-seq-btn dim" data-seq-idx="2">A</button>
+                <button class="pat-seq-btn dim" data-seq-idx="3">B</button>
+              </div>
+            </div>
+            <div class="pat-row" data-pat-row="bass">
+              <span class="pat-inst">BASS</span>
+              <div class="seg-group" data-pat-edit="bass">
+                <button class="seg-btn active" data-pat-slot="A">A</button>
+                <button class="seg-btn" data-pat-slot="B">B</button>
+                <button class="seg-btn" data-pat-slot="C">C</button>
+                <button class="seg-btn" data-pat-slot="D">D</button>
+              </div>
+              <div class="seg-group" data-pat-len="bass">
+                <button class="seg-btn active" data-len="1">1B</button>
+                <button class="seg-btn" data-len="2">2B</button>
+                <button class="seg-btn" data-len="3">3B</button>
+                <button class="seg-btn" data-len="4">4B</button>
+              </div>
+              <div class="pat-seq" data-pat-seq="bass">
+                <button class="pat-seq-btn" data-seq-idx="0">A</button>
+                <button class="pat-seq-btn dim" data-seq-idx="1">A</button>
+                <button class="pat-seq-btn dim" data-seq-idx="2">A</button>
+                <button class="pat-seq-btn dim" data-seq-idx="3">B</button>
+              </div>
+            </div>
+            <div class="pat-row" data-pat-row="lead">
+              <span class="pat-inst">LEAD</span>
+              <div class="seg-group" data-pat-edit="lead">
+                <button class="seg-btn active" data-pat-slot="A">A</button>
+                <button class="seg-btn" data-pat-slot="B">B</button>
+                <button class="seg-btn" data-pat-slot="C">C</button>
+                <button class="seg-btn" data-pat-slot="D">D</button>
+              </div>
+              <div class="seg-group" data-pat-len="lead">
+                <button class="seg-btn active" data-len="1">1B</button>
+                <button class="seg-btn" data-len="2">2B</button>
+                <button class="seg-btn" data-len="3">3B</button>
+                <button class="seg-btn" data-len="4">4B</button>
+              </div>
+              <div class="pat-seq" data-pat-seq="lead">
+                <button class="pat-seq-btn" data-seq-idx="0">A</button>
+                <button class="pat-seq-btn dim" data-seq-idx="1">A</button>
+                <button class="pat-seq-btn dim" data-seq-idx="2">A</button>
+                <button class="pat-seq-btn dim" data-seq-idx="3">B</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rack-card span-2" data-module="bassTone">
+          <div class="rack-head">
+            <span class="rack-title">BASS &amp; STAB TONE</span>
+            <span class="rel-pill" data-focus-module="bassTone">→ 6 &amp; 9</span>
+            <button class="mod-hide-btn" data-hide-module="bassTone" title="Hide Module">×</button>
+          </div>
+          <div class="lead-split">
+            <div class="lead-col">
+              <div class="rack-row">
+                <span class="grp-lbl">BASS</span>
+                <div class="seg-group" id="grp-bass-tone">
+                  <button class="seg-btn active" data-bass-tone="saw">SAW</button>
+                  <button class="seg-btn" data-bass-tone="sqr">SQR</button>
+                  <button class="seg-btn" data-bass-tone="acid">ACID</button>
+                  <button class="seg-btn" data-bass-tone="sub">SUB</button>
+                </div>
+              </div>
+              <div class="rack-row">
+                <span class="grp-lbl">STAB</span>
+                <div class="seg-group" id="grp-stab-rhythm">
+                  <button class="seg-btn active" data-stab-rhythm="3">3-HIT</button>
+                  <button class="seg-btn" data-stab-rhythm="5">5-HIT</button>
+                  <button class="seg-btn" data-stab-rhythm="off">OFF-BT</button>
+                </div>
+              </div>
+            </div>
+            <div class="lead-col">
+              <div class="arp-knobs-col">
+                <div class="knob-unit" id="knob-bass-cutoff" data-knob="bassCutoff" title="Drag up/down: Bass Filter Cutoff">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-bass-cutoff">45%</span>
+                  <span class="knob-lbl">BASS CUT</span>
+                </div>
+                <div class="knob-unit" id="knob-bass-decay" data-knob="bassDecay" title="Drag up/down: Bass Note Decay">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-bass-decay">45%</span>
+                  <span class="knob-lbl">DECAY</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rack-card span-2" data-module="lead">
+          <div class="rack-head">
+            <span class="rack-title">LEAD // SYNTH &amp; ARP</span>
+            <span class="rel-pill" data-focus-module="lead">→ 7</span>
+            <button class="mod-hide-btn" data-hide-module="lead" title="Hide Module">×</button>
+          </div>
+          <div class="oled-screen" id="oled-synth">PLUCK · OFF · PLK · WRM</div>
+          <div class="lead-split">
+            <div class="lead-col">
+              <div class="rack-row">
+                <span class="grp-lbl">LEAD</span>
+                <div class="seg-group wrap-group" id="grp-lead-voice">
+                  <button class="seg-btn active" data-lead-voice="pluck">PLK</button>
+                  <button class="seg-btn" data-lead-voice="acid">ACID</button>
+                  <button class="seg-btn" data-lead-voice="fm">FM</button>
+                  <button class="seg-btn" data-lead-voice="reese">REESE</button>
+                </div>
+              </div>
+              <div class="rack-row">
+                <span class="grp-lbl">HARM</span>
+                <div class="seg-group" id="grp-harmony">
+                  <button class="seg-btn active" data-harmony="off">OFF</button>
+                  <button class="seg-btn" data-harmony="third">3RD</button>
+                  <button class="seg-btn" data-harmony="fifth">5TH</button>
+                  <button class="seg-btn" data-harmony="oct">OCT</button>
+                  <button class="seg-btn" data-harmony="triad">TRI</button>
+                </div>
+              </div>
+              <div class="rack-row">
+                <span class="grp-lbl">ENV</span>
+                <div class="seg-group" id="grp-env">
+                  <button class="seg-btn" data-env="snap">SNAP</button>
+                  <button class="seg-btn active" data-env="pluck">PLK</button>
+                  <button class="seg-btn" data-env="swell">SWL</button>
+                </div>
+              </div>
+              <div class="rack-row">
+                <span class="grp-lbl">DETUNE</span>
+                <div class="seg-group" id="grp-detune">
+                  <button class="seg-btn" data-detune="clean">0</button>
+                  <button class="seg-btn active" data-detune="warm">WRM</button>
+                  <button class="seg-btn" data-detune="wide">WIDE</button>
+                </div>
+              </div>
+              <div class="rack-row">
+                <button id="btn-lead-glide" class="ctrl-btn compact full-w led-btn" title="Toggle Portamento Glide">
+                  <span class="led"></span>GLIDE: <strong id="val-lead-glide">OFF</strong>
+                </button>
+              </div>
+              <div class="rack-row">
+                <span class="grp-lbl">SNAP</span>
+                <div class="seg-group" id="grp-mel-quant">
+                  <button class="seg-btn active" data-mel-quant="1">1/16</button>
+                  <button class="seg-btn" data-mel-quant="2">1/8</button>
+                  <button class="seg-btn" data-mel-quant="4">1/4</button>
+                </div>
+                <button id="btn-clear-melody" class="ctrl-btn compact" title="Clear Sketched Melody — press again when empty to turn Arp OFF">
+                  CLR
+                </button>
+              </div>
+            </div>
+
+            <div class="lead-col">
+              <div class="rack-row">
+                <span class="grp-lbl">ARP</span>
+                <div class="seg-group wrap-group" id="grp-arp-mode">
+                  <button class="seg-btn" data-arp-mode="off">OFF</button>
+                  <button class="seg-btn active" data-arp-mode="up">UP</button>
+                  <button class="seg-btn" data-arp-mode="down">DN</button>
+                  <button class="seg-btn" data-arp-mode="updown">UD</button>
+                  <button class="seg-btn" data-arp-mode="downup">DU</button>
+                  <button class="seg-btn" data-arp-mode="order">ORD</button>
+                  <button class="seg-btn" data-arp-mode="random">RND</button>
+                </div>
+              </div>
+              <div class="rack-row">
+                <span class="grp-lbl">SPD</span>
+                <div class="seg-group wrap-group" id="grp-arp-spd">
+                  <button class="seg-btn" data-arp-spd="0.5">0.5x</button>
+                  <button class="seg-btn active" data-arp-spd="1">1x</button>
+                  <button class="seg-btn" data-arp-spd="1.5">1.5x</button>
+                  <button class="seg-btn" data-arp-spd="2">2x</button>
+                </div>
+              </div>
+              <div class="rack-row">
+                <span class="grp-lbl">OCT</span>
+                <div class="seg-group" id="grp-arp-oct">
+                  <button class="seg-btn active" data-arp-oct="1">1</button>
+                  <button class="seg-btn" data-arp-oct="2">2</button>
+                </div>
+                <span class="grp-lbl">SHFT</span>
+                <div class="seg-group" id="grp-arp-shift">
+                  <button class="seg-btn" data-arp-shift="-1">-1</button>
+                  <button class="seg-btn active" data-arp-shift="0">0</button>
+                  <button class="seg-btn" data-arp-shift="1">+1</button>
+                </div>
+              </div>
+              <div class="rack-row">
+                <span class="grp-lbl">RHY</span>
+                <div class="seg-group" id="grp-arp-rhythm">
+                  <button class="seg-btn active" data-arp-rhythm="all">ALL</button>
+                  <button class="seg-btn" data-arp-rhythm="sync">SYNC</button>
+                  <button class="seg-btn" data-arp-rhythm="poly">POLY</button>
+                  <button class="seg-btn" data-arp-rhythm="stab">STAB</button>
+                </div>
+              </div>
+              <div class="arp-knobs-col">
+                <div class="knob-unit" id="knob-arp-gate" data-knob="arpGate" title="Drag up/down: Synth &amp; Arp Note Gate Length">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-arp-gate">75%</span>
+                  <span class="knob-lbl">GATE</span>
+                </div>
+                <div class="knob-unit" id="knob-arp-prob" data-knob="arpProb" title="Drag up/down: Arp Step Probability">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-arp-prob">100%</span>
+                  <span class="knob-lbl">PROB</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rack-card" data-module="geom">
+          <div class="rack-head">
+            <span class="rack-title">GEO SHAPE</span>
+            <button class="rel-pill" data-focus-module="filter">→ 4 TARGETS</button>
+            <button class="mod-hide-btn" data-hide-module="geom" title="Hide Module">×</button>
+          </div>
+          <div class="rack-row">
+            <span class="grp-lbl geom-row-lbl active" data-geom-select="bass" title="Bass Octave Cycler">BASS</span>
+            <div class="seg-group">
+              <button class="seg-btn active" data-geom-for="bass" data-geom-shape="off">OFF</button>
+              <button class="seg-btn" data-geom-for="bass" data-geom-shape="triangle">TRI</button>
+              <button class="seg-btn" data-geom-for="bass" data-geom-shape="square">SQR</button>
+              <button class="seg-btn" data-geom-for="bass" data-geom-shape="pentagon">PENT</button>
+            </div>
+          </div>
+          <div class="rack-row">
+            <span class="grp-lbl geom-row-lbl" data-geom-select="arp" title="Arp Speed Cycler">ARP</span>
+            <div class="seg-group">
+              <button class="seg-btn active" data-geom-for="arp" data-geom-shape="off">OFF</button>
+              <button class="seg-btn" data-geom-for="arp" data-geom-shape="triangle">TRI</button>
+              <button class="seg-btn" data-geom-for="arp" data-geom-shape="square">SQR</button>
+              <button class="seg-btn" data-geom-for="arp" data-geom-shape="pentagon">PENT</button>
+            </div>
+          </div>
+          <div class="rack-row">
+            <span class="grp-lbl geom-row-lbl" data-geom-select="pad" title="Pad Chord Cycler">PAD</span>
+            <div class="seg-group">
+              <button class="seg-btn active" data-geom-for="pad" data-geom-shape="off">OFF</button>
+              <button class="seg-btn" data-geom-for="pad" data-geom-shape="triangle">TRI</button>
+              <button class="seg-btn" data-geom-for="pad" data-geom-shape="square">SQR</button>
+              <button class="seg-btn" data-geom-for="pad" data-geom-shape="pentagon">PENT</button>
+            </div>
+          </div>
+          <div class="rack-row">
+            <span class="grp-lbl geom-row-lbl" data-geom-select="filter" title="Filter Cutoff Cycler">FLT</span>
+            <div class="seg-group">
+              <button class="seg-btn active" data-geom-for="filter" data-geom-shape="off">OFF</button>
+              <button class="seg-btn" data-geom-for="filter" data-geom-shape="triangle">TRI</button>
+              <button class="seg-btn" data-geom-for="filter" data-geom-shape="square">SQR</button>
+              <button class="seg-btn" data-geom-for="filter" data-geom-shape="pentagon">PENT</button>
+            </div>
+          </div>
+          <div class="rack-row">
+            <button id="btn-geom-clear" class="ctrl-btn compact full-w" title="Turn Off All Geometry Shapes">ALL OFF</button>
+          </div>
+        </div>
+
+        <div class="rack-card span-2" data-module="filter">
+          <div class="rack-head">
+            <span class="rack-title">FILTER, DRIVE &amp; LFO</span>
+            <button class="rel-pill" data-focus-module="lead">→ LEAD / MASTER</button>
+            <button class="mod-hide-btn" data-hide-module="filter" title="Hide Module">×</button>
+          </div>
+          <div class="lead-split">
+            <div class="lead-col">
+              <div class="knob-row">
+                <div class="knob-unit" id="knob-cutoff" data-knob="cutoff" title="Drag up/down: Master Filter Cutoff (also Canvas X)">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-cutoff">1.2k</span>
+                  <span class="knob-lbl">CUTOFF</span>
+                </div>
+                <div class="knob-unit" id="knob-reso" data-knob="reso" title="Drag up/down: Filter Resonance Q (also Alt+Drag)">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-reso">1.6</span>
+                  <span class="knob-lbl">RESO Q</span>
+                </div>
+                <div class="knob-unit" id="knob-drive" data-knob="drive" title="Drag up/down: Analog Saturation Drive">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-drive">45%</span>
+                  <span class="knob-lbl">DRIVE</span>
+                </div>
+                <div class="knob-unit" id="knob-minimal" data-knob="minimal" title="Drag up/down: Minimal vs Drift">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-minimal">100%</span>
+                  <span class="knob-lbl">MINIMAL</span>
+                </div>
+              </div>
+              <div class="rack-row">
+                <span class="grp-lbl">SCALE</span>
+                <div class="seg-group" id="grp-scale">
+                  <button class="seg-btn active" data-scale="0">PHR</button>
+                  <button class="seg-btn" data-scale="1">MIN</button>
+                  <button class="seg-btn" data-scale="2">DOR</button>
+                </div>
+                <span class="grp-lbl">KEY</span>
+                <div class="seg-group">
+                  <button id="btn-root-down" class="seg-btn" title="Transpose Root Down 1 Semitone">-</button>
+                  <span id="val-root-note" class="seg-btn active" style="cursor:default">C</span>
+                  <button id="btn-root-up" class="seg-btn" title="Transpose Root Up 1 Semitone">+</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="lead-col">
+              <div class="oled-screen" id="oled-mod">LFO OFF → FLT 65%</div>
+              <div class="rack-row">
+                <span class="grp-lbl">RATE</span>
+                <div class="seg-group wrap-group" id="grp-lfo-rate">
+                  <button class="seg-btn active" data-lfo-rate="off">OFF</button>
+                  <button class="seg-btn" data-lfo-rate="slow">SLW</button>
+                  <button class="seg-btn" data-lfo-rate="med">MED</button>
+                  <button class="seg-btn" data-lfo-rate="fast">FST</button>
+                </div>
+              </div>
+              <div class="rack-row">
+                <span class="grp-lbl">DEST</span>
+                <div class="seg-group" id="grp-lfo-dest">
+                  <button class="seg-btn active" data-lfo-dest="filter">FLT</button>
+                  <button class="seg-btn" data-lfo-dest="pan">PAN</button>
+                </div>
+              </div>
+              <div class="arp-knobs-col">
+                <div class="knob-unit" id="knob-lfo-depth" data-knob="lfoDepth" title="Drag up/down: LFO Modulation Depth">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-lfo-depth">65%</span>
+                  <span class="knob-lbl">DEPTH</span>
+                </div>
+                <div class="knob-unit" id="knob-chorus" data-knob="chorus" title="Drag up/down: Stereo Chorus Spread (Lead)">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-chorus">35%</span>
+                  <span class="knob-lbl">CHORUS</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rack-card span-2" data-module="pad">
+          <div class="rack-head">
+            <span class="rack-title">DRONE // PAD &amp; SPACE FX</span>
+            <span class="rel-pill" data-focus-module="pad">→ 8</span>
+            <button class="mod-hide-btn" data-hide-module="pad" title="Hide Module">×</button>
+          </div>
+          <div class="lead-split">
+            <div class="lead-col">
+              <div class="oled-screen" id="oled-space">MIN7 · 3/16 DARK</div>
+              <div class="rack-row">
+                <span class="grp-lbl">CHORD</span>
+                <div class="seg-group" id="grp-pad-chord">
+                  <button class="seg-btn" data-pad-chord="drone">DRN</button>
+                  <button class="seg-btn active" data-pad-chord="minor">MIN7</button>
+                  <button class="seg-btn" data-pad-chord="sus2">SUS2</button>
+                  <button class="seg-btn" data-pad-chord="shimmer">SHM</button>
+                </div>
+              </div>
+              <div class="rack-row">
+                <span class="grp-lbl">DELAY</span>
+                <div class="seg-group" id="grp-delay-sync">
+                  <button class="seg-btn" data-delay-sync="1/8">1/8</button>
+                  <button class="seg-btn active" data-delay-sync="3/16">3/16</button>
+                  <button class="seg-btn" data-delay-sync="1/4">1/4</button>
+                  <button class="seg-btn" data-delay-sync="slap">SLAP</button>
+                </div>
+              </div>
+              <div class="rack-row">
+                <span class="grp-lbl">SPACE</span>
+                <div class="seg-group" id="grp-space-mode">
+                  <button class="seg-btn active" data-space-mode="dark">DARK</button>
+                  <button class="seg-btn" data-space-mode="cavern">CVRN</button>
+                  <button class="seg-btn" data-space-mode="freeze">FRZ</button>
+                </div>
+              </div>
+            </div>
+            <div class="lead-col">
+              <div class="knob-row">
+                <div class="knob-unit" id="knob-pad-lvl" data-knob="padLevel" title="Drag up/down: Soundscape / Pad Level">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-pad-lvl">75%</span>
+                  <span class="knob-lbl">PAD LVL</span>
+                </div>
+                <div class="knob-unit" id="knob-space" data-knob="space" title="Drag up/down: Reverb &amp; Delay Space (also Canvas Y)">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-space">35%</span>
+                  <span class="knob-lbl">SPACE</span>
+                </div>
+                <div class="knob-unit" id="knob-pump" data-knob="pump" title="Drag up/down: Kick Sidechain Pump">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-pump">68%</span>
+                  <span class="knob-lbl">PUMP</span>
+                </div>
+                <div class="knob-unit" id="knob-delay-fb" data-knob="delayFeedback" title="Drag up/down: Delay Feedback">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-delay-fb">36%</span>
+                  <span class="knob-lbl">FEEDBK</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rack-card span-2" data-module="modifiers">
+          <div class="rack-head">
+            <span class="rack-title">MODIFIERS &amp; BLEEPS</span>
+            <button class="rel-pill" data-focus-module="lead">→ BASS/LEAD</button>
+            <button class="mod-hide-btn" data-hide-module="modifiers" title="Hide Module">×</button>
+          </div>
+          <div class="lead-split">
+            <div class="lead-col">
+              <div class="fader-row">
+                <span class="fader-lbl">RING MOD</span>
+                <input id="fader-ring-mod" class="fader" type="range" min="0" max="100" value="0" />
+                <span class="fader-val" id="val-ring-mod">0%</span>
+              </div>
+              <div class="fader-row">
+                <span class="fader-lbl">TAPE WOW</span>
+                <input id="fader-tape-wow" class="fader" type="range" min="0" max="100" value="15" />
+                <span class="fader-val" id="val-tape-wow">15%</span>
+              </div>
+              <div class="fader-row">
+                <span class="fader-lbl">GLITCH</span>
+                <input id="fader-glitch" class="fader" type="range" min="0" max="100" value="0" />
+                <span class="fader-val" id="val-glitch">0%</span>
+              </div>
+            </div>
+            <div class="lead-col">
+              <div class="fader-row">
+                <span class="fader-lbl">HUMANIZE</span>
+                <input id="fader-humanize" class="fader" type="range" min="0" max="100" value="15" />
+                <span class="fader-val" id="val-humanize">15%</span>
+              </div>
+              <div class="fader-row">
+                <span class="fader-lbl">BLEEPS</span>
+                <input id="fader-bleeps" class="fader" type="range" min="0" max="100" value="0" />
+                <span class="fader-val" id="val-bleeps">0%</span>
+              </div>
+              <div class="fader-row">
+                <span class="fader-lbl">CRUSH</span>
+                <input id="fader-crush" class="fader" type="range" min="0" max="100" value="0" />
+                <span class="fader-val" id="val-crush">0%</span>
+              </div>
+              <div class="fader-row">
+                <span class="fader-lbl">TENSION</span>
+                <input id="fader-tension" class="fader" type="range" min="0" max="100" value="0" />
+                <span class="fader-val" id="val-tension">0%</span>
+              </div>
+              <div class="fader-row">
+                <span class="fader-lbl">GHOST</span>
+                <input id="fader-ghost" class="fader" type="range" min="0" max="100" value="0" />
+                <span class="fader-val" id="val-ghost">0%</span>
+              </div>
+              <div class="rack-row">
+                <button id="btn-sub-drop" class="ctrl-btn compact full-w led-btn" title="Drop Bass -1 Octave">
+                  <span class="led"></span>SUB DROP: <strong id="val-sub-drop">OFF</strong>
+                </button>
+                <button id="btn-auto-fill" class="ctrl-btn compact full-w led-btn" title="Auto Drum Roll + Riser on Bar 4">
+                  <span class="led"></span>4-BAR FILL: <strong id="val-auto-fill">OFF</strong>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <div id="start-overlay">
+      <div class="start-card">
+        <h1>DRIFT</h1>
+        <p>Live Minimal Techno &amp; Dark Ambient Console</p>
+        <p class="hint">Click anywhere or press <kbd>Enter</kbd> to initialize audio</p>
+      </div>
+    </div>
+
+    <div id="help-overlay" class="hidden">
+      <div class="help-card">
+        <h2>CONTROLS &amp; SHORTCUTS</h2>
+        <div class="help-grid">
+          <div>
+            <h3>4-PANEL WORKSPACE</h3>
+            <ul>
+              <li><strong>01 Orbits &amp; Geometry:</strong> Click ring to add/remove in-time hits; click Geometry to cycle shape.</li>
+              <li><strong>02 Percussion:</strong> Click/swipe Kick, Perc, Hat, Clap, and Tom steps live.</li>
+              <li><strong>03 Melody Sketch:</strong> Draw curve to quantize (overdubs!); click cell to toggle.</li>
+              <li><strong>04 Sweeps:</strong> Drag = Filter &amp; Space; <kbd>Alt</kbd>+Drag = Resonance &amp; Pump.</li>
+              <li><strong>Scroll Wheel:</strong> Morph Minimal &harr; Drift.</li>
+            </ul>
+          </div>
+          <div>
+            <h3>KEYBOARD SHORTCUTS</h3>
+            <ul>
+              <li><kbd>1</kbd>–<kbd>8</kbd>: Mute Audio Channels &nbsp;|&nbsp; <kbd>Enter</kbd>: Play/Stop &nbsp;|&nbsp; <kbd>Tab</kbd>: Bank</li>
+              <li><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> + <kbd>Q</kbd><kbd>E</kbd><kbd>R</kbd><kbd>F</kbd>: Context controls for selected component</li>
+              <li><kbd>C</kbd>: Shuffle &nbsp;|&nbsp; <kbd>V</kbd>: Undo &nbsp;|&nbsp; <kbd>Space</kbd> / <kbd>Z</kbd> / <kbd>X</kbd> (Hold): Drop / Tape / Stutter</li>
+            </ul>
+          </div>
+        </div>
+        <p class="hint">Press <kbd>?</kbd> or <kbd>Esc</kbd> to close</p>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
