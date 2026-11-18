@@ -26,16 +26,23 @@ import {
   undoRowHistory,
 } from '../state/shuffle';
 import {
+  applySceneXfade,
   ArpMode,
   ArpRhythm,
   BassTone,
+  captureScene,
+  DubChannel,
   DelaySync,
+  EnvFolDest,
+  EnvFolSource,
   GearQuantize,
   GeometryMode,
   GeomTarget,
   HarmonyMode,
   KickCharacter,
   LeadVoice,
+  Lfo2Dest,
+  Lfo2Shape,
   LfoDest,
   LfoRate,
   MuteChannel,
@@ -51,6 +58,8 @@ import {
   RadarViewMode,
   SampleAutoMode,
   selectPatternEditSlot,
+  ShDest,
+  ShRate,
   SpaceMode,
   state,
   SynthDetune,
@@ -503,6 +512,139 @@ export function setupControls(
   bindKnob('knob-delay-fb', () => state.delayFeedback / 0.85, (v) => (state.delayFeedback = v * 0.85), 0.36 / 0.85);
   bindKnob('knob-bass-cutoff', () => state.bassCutoff, (v) => (state.bassCutoff = v), 0.45);
   bindKnob('knob-bass-decay', () => state.bassDecay, (v) => (state.bassDecay = v), 0.45);
+  bindKnob('knob-dj-filter', () => state.djFilter, (v) => (state.djFilter = v), 0.5);
+  bindKnob('knob-eq-low', () => state.eqLow, (v) => (state.eqLow = v), 0.75);
+  bindKnob('knob-eq-mid', () => state.eqMid, (v) => (state.eqMid = v), 0.75);
+  bindKnob('knob-eq-high', () => state.eqHigh, (v) => (state.eqHigh = v), 0.75);
+
+  (['low', 'mid', 'high'] as const).forEach((band) => {
+    document.getElementById(`btn-kill-${band}`)?.addEventListener('click', () => {
+      ensureStarted();
+      state.eqKill[band] = !state.eqKill[band];
+      engine.syncParameters();
+      onHudUpdate();
+    });
+  });
+
+  document.getElementById('btn-cap-a')?.addEventListener('click', () => {
+    captureScene('A');
+    onHudUpdate();
+  });
+  document.getElementById('btn-cap-b')?.addEventListener('click', () => {
+    captureScene('B');
+    onHudUpdate();
+  });
+  const sceneXfader = document.getElementById('scene-xfader') as HTMLInputElement | null;
+  sceneXfader?.addEventListener('input', () => {
+    ensureStarted();
+    applySceneXfade(Number(sceneXfader.value) / 100);
+    engine.syncParameters();
+    drone.update(engine);
+    onHudUpdate();
+  });
+
+  bindKnob('knob-comb-mix', () => state.combMix, (v) => (state.combMix = v), 0);
+  bindKnob('knob-comb-tune', () => state.combTune, (v) => (state.combTune = v), 0.42);
+  bindKnob('knob-comb-fb', () => state.combFeedback, (v) => (state.combFeedback = v), 0.55);
+  bindKnob('knob-gate-mix', () => state.gatedReverbMix, (v) => (state.gatedReverbMix = v), 0);
+  bindKnob('knob-gate-time', () => state.gatedReverbTime, (v) => (state.gatedReverbTime = v), 0.35);
+
+  document.getElementById('btn-ping-pong')?.addEventListener('click', () => {
+    ensureStarted();
+    state.pingPong = !state.pingPong;
+    engine.syncParameters();
+    onHudUpdate();
+  });
+
+  document.querySelectorAll<HTMLInputElement>('[data-dub-delay]').forEach((inp) => {
+    inp.addEventListener('input', () => {
+      ensureStarted();
+      const ch = inp.dataset.dubDelay as DubChannel;
+      state.dubDelaySend[ch] = Number(inp.value) / 100;
+      engine.syncParameters();
+    });
+  });
+
+  document.querySelectorAll<HTMLInputElement>('[data-dub-reverb]').forEach((inp) => {
+    inp.addEventListener('input', () => {
+      ensureStarted();
+      const ch = inp.dataset.dubReverb as DubChannel;
+      state.dubReverbSend[ch] = Number(inp.value) / 100;
+      engine.syncParameters();
+    });
+  });
+
+  bindKnob('knob-lfo2-rate', () => state.lfo2Rate, (v) => (state.lfo2Rate = v), 0.25);
+  bindKnob('knob-lfo2-depth', () => state.lfo2Depth, (v) => (state.lfo2Depth = v), 0);
+  bindKnob('knob-sh-depth', () => state.shDepth, (v) => (state.shDepth = v), 0);
+  bindKnob('knob-env-fol', () => state.envFolAmount, (v) => (state.envFolAmount = v), 0.5);
+  bindKnob('knob-bass-envmod', () => state.bassEnvMod, (v) => (state.bassEnvMod = v), 0.45);
+  bindKnob('knob-bass-envdec', () => state.bassEnvDecay, (v) => (state.bassEnvDecay = v), 0.35);
+  bindKnob('knob-bass-fold', () => state.bassWavefold, (v) => (state.bassWavefold = v), 0);
+  bindKnob('knob-kick-sweep', () => state.kickPitchDecay, (v) => (state.kickPitchDecay = v), 0.45);
+  bindKnob('knob-kick-punch', () => state.kickPunch, (v) => (state.kickPunch = v), 0.5);
+  bindKnob('knob-hat-decay', () => state.hatDecay, (v) => (state.hatDecay = v), 0.4);
+  bindKnob('knob-clap-snap', () => state.clapSnap, (v) => (state.clapSnap = v), 0.5);
+  bindKnob('knob-perc-fm', () => state.percFmIndex, (v) => (state.percFmIndex = v), 0.5);
+  bindKnob('knob-turing-mutate', () => state.turingMutate, (v) => (state.turingMutate = v), 0.15);
+  bindKnob('knob-ratchet-prob', () => state.ratchetProb, (v) => (state.ratchetProb = v), 0);
+
+  document.getElementById('btn-turing-toggle')?.addEventListener('click', () => {
+    ensureStarted();
+    state.turingEnabled = !state.turingEnabled;
+    onHudUpdate();
+  });
+  document.getElementById('btn-turing-seed')?.addEventListener('click', () => {
+    ensureStarted();
+    state.turingBuffer = Array.from({ length: 16 }, () => Math.floor(Math.random() * 14));
+    onHudUpdate();
+  });
+  bindSegGroup('#grp-turing-target .seg-btn', (v) => {
+    state.turingTarget = v as 'lead' | 'bass';
+  });
+
+  document.querySelectorAll<HTMLButtonElement>('[data-poly-dec]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      ensureStarted();
+      const k = btn.dataset.polyDec as keyof typeof state.trackLengths;
+      state.trackLengths[k] = Math.max(1, state.trackLengths[k] - 1);
+      onHudUpdate();
+    });
+  });
+  document.querySelectorAll<HTMLButtonElement>('[data-poly-inc]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      ensureStarted();
+      const k = btn.dataset.polyInc as keyof typeof state.trackLengths;
+      state.trackLengths[k] = Math.min(16, state.trackLengths[k] + 1);
+      onHudUpdate();
+    });
+  });
+  document.getElementById('btn-poly-reset')?.addEventListener('click', () => {
+    ensureStarted();
+    (Object.keys(state.trackLengths) as (keyof typeof state.trackLengths)[]).forEach((k) => {
+      state.trackLengths[k] = 16;
+    });
+    onHudUpdate();
+  });
+
+  bindSegGroup('#grp-lfo2-shape .seg-btn', (v) => {
+    state.lfo2Shape = v as Lfo2Shape;
+  });
+  bindSegGroup('#grp-lfo2-dest .seg-btn', (v) => {
+    state.lfo2Dest = v as Lfo2Dest;
+  });
+  bindSegGroup('#grp-sh-rate .seg-btn', (v) => {
+    state.shRate = v as ShRate;
+  });
+  bindSegGroup('#grp-sh-dest .seg-btn', (v) => {
+    state.shDest = v as ShDest;
+  });
+  bindSegGroup('#grp-envfol-src .seg-btn', (v) => {
+    state.envFolSource = v as EnvFolSource;
+  });
+  bindSegGroup('#grp-envfol-dst .seg-btn', (v) => {
+    state.envFolDest = v as EnvFolDest;
+  });
 
   bindSegGroup('#grp-bass-tone .seg-btn', (v) => {
     state.bassTone = v as BassTone;
@@ -939,6 +1081,13 @@ export function setupControls(
           state.tomSteps,
         ];
         const arr = stepArrays[row];
+        if (e.shiftKey && (row === 1 || row === 2 || row === 3)) {
+          const rKey = row === 1 ? 'perc' : row === 2 ? 'hat' : 'clap';
+          const cur = state.ratchetSteps[rKey][step] ?? 1;
+          state.ratchetSteps[rKey][step] = cur >= 4 ? 1 : cur + 1;
+          onHudUpdate();
+          return;
+        }
         const paintValue = !arr[step];
         arr[step] = paintValue;
         drag = { type: 'perc', paintValue, lastKey: `${row}:${step}`, paintedRows: new Set([row]) };
@@ -1042,6 +1191,18 @@ export function setupControls(
         }
         pushUndo();
         const step = Math.max(0, Math.min(7, Math.floor(((x - bm.gridX) / bm.gridW) * 8)));
+        if (e.shiftKey) {
+          state.bassAccents[step] = !state.bassAccents[step];
+          state.bassAccents[step + 8] = state.bassAccents[step];
+          onHudUpdate();
+          return;
+        }
+        if (e.altKey) {
+          state.bassSlides[step] = !state.bassSlides[step];
+          state.bassSlides[step + 8] = state.bassSlides[step];
+          onHudUpdate();
+          return;
+        }
         const normY = 1 - Math.max(0, Math.min(1, (y - bm.gridY) / bm.gridH));
         const deg = Math.max(0, Math.min(7, Math.round(normY * 7)));
         if (state.latchedIndices[step] !== deg) {

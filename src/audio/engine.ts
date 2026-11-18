@@ -1,4 +1,4 @@
-import { state } from '../state/store';
+import { DubChannel, state } from '../state/store';
 
 function makeSaturationCurve(amount = 18): Float32Array<ArrayBuffer> {
   const samples = 2048;
@@ -45,6 +45,20 @@ function createDarkImpulseResponse(ctx: AudioContext, seconds = 4.6, decay = 2.8
   return impulse;
 }
 
+function createBrightGateImpulse(ctx: AudioContext, seconds = 0.7): AudioBuffer {
+  const rate = ctx.sampleRate;
+  const length = Math.floor(rate * seconds);
+  const impulse = ctx.createBuffer(2, length, rate);
+  for (let ch = 0; ch < 2; ch++) {
+    const data = impulse.getChannelData(ch);
+    for (let i = 0; i < length; i++) {
+      const env = Math.pow(1 - i / length, 1.15);
+      data[i] = (Math.random() * 2 - 1) * env;
+    }
+  }
+  return impulse;
+}
+
 export class AudioEngine {
   public ctx!: AudioContext;
   public dryBus!: GainNode;
@@ -61,11 +75,32 @@ export class AudioEngine {
   private lastCrushStep = -1;
   private saturator!: WaveShaperNode;
   private delayNode!: DelayNode;
+  private delayNodeR!: DelayNode;
   private delayFeedback!: GainNode;
+  private delayFeedbackCross!: GainNode;
+  private delayPanL!: StereoPannerNode;
+  private delayPanR!: StereoPannerNode;
   private reverbNode!: ConvolverNode;
+  private gatedReverbNode!: ConvolverNode;
+  private gatedReverbGate!: GainNode;
+  private gatedReverbInput!: GainNode;
+  public combInput!: GainNode;
+  private combDelay!: DelayNode;
+  private combFeedback!: GainNode;
+  private combWetGain!: GainNode;
+  public channelSends!: Record<DubChannel, { delay: GainNode; reverb: GainNode }>;
   private lfoOsc!: OscillatorNode;
   private lfoFilterGain!: GainNode;
   private lfoPanGain!: GainNode;
+  private lfo2Osc!: OscillatorNode;
+  private lfo2CutoffGain!: GainNode;
+  private lfo2ResoGain!: GainNode;
+  private lfo2PanGain!: GainNode;
+  private lfo2CombGain!: GainNode;
+  private eqLowGain!: GainNode;
+  private eqMidGain!: GainNode;
+  private eqHighGain!: GainNode;
+  private djFilterNode!: BiquadFilterNode;
   public masterGain!: GainNode;
 
   public init(): void {
@@ -113,14 +148,60 @@ export class AudioEngine {
     const reverbReturn = ctx.createGain();
     reverbReturn.gain.value = 0.65;
 
-    // Dotted-8th style dark delay
+    // Dotted-8th style dark stereo ping-pong delay with soft-clip feedback
     this.delayNode = ctx.createDelay(2.0);
     this.delayNode.delayTime.value = (60 / state.bpm) * 0.75;
+    this.delayNodeR = ctx.createDelay(2.0);
+    this.delayNodeR.delayTime.value = (60 / state.bpm) * 0.75;
     this.delayFeedback = ctx.createGain();
     this.delayFeedback.gain.value = 0.36;
+    this.delayFeedbackCross = ctx.createGain();
+    this.delayFeedbackCross.gain.value = 0.36;
     const delayFilter = ctx.createBiquadFilter();
     delayFilter.type = 'lowpass';
     delayFilter.frequency.value = 1800;
+    const delayFilterR = ctx.createBiquadFilter();
+    delayFilterR.type = 'lowpass';
+    delayFilterR.frequency.value = 1750;
+    const delayClip = ctx.createWaveShaper();
+    delayClip.curve = makeSaturationCurve(8);
+    this.delayPanL = ctx.createStereoPanner();
+    this.delayPanL.pan.value = -0.75;
+    this.delayPanR = ctx.createStereoPanner();
+    this.delayPanR.pan.value = 0.75;
+
+    // Comb Filter / Resonator for metallic minimal textures
+    this.combInput = ctx.createGain();
+    this.combDelay = ctx.createDelay(0.1);
+    this.combDelay.delayTime.value = 0.012;
+    const combDamp = ctx.createBiquadFilter();
+    combDamp.type = 'lowpass';
+    combDamp.frequency.value = 4200;
+    this.combFeedback = ctx.createGain();
+    this.combFeedback.gain.value = 0.55;
+    this.combWetGain = ctx.createGain();
+    this.combWetGain.gain.value = 0;
+
+    // Gated Reverb for 80s electro claps/toms
+    this.gatedReverbInput = ctx.createGain();
+    this.gatedReverbNode = ctx.createConvolver();
+    this.gatedReverbNode.buffer = createBrightGateImpulse(ctx, 0.7);
+    this.gatedReverbGate = ctx.createGain();
+    this.gatedReverbGate.gain.value = 0;
+
+    // Per-Channel Dub Sends
+    const dubChannels: DubChannel[] = ['kick', 'perc', 'hat', 'clap', 'bass', 'lead', 'stab'];
+    this.channelSends = {} as Record<DubChannel, { delay: GainNode; reverb: GainNode }>;
+    for (const ch of dubChannels) {
+      const d = ctx.createGain();
+      const r = ctx.createGain();
+      d.gain.value = state.dubDelaySend[ch];
+      r.gain.value = state.dubReverbSend[ch];
+      d.connect(this.delaySend);
+      d.connect(this.combInput);
+      r.connect(this.reverbSend);
+      this.channelSends[ch] = { delay: d, reverb: r };
+    }
 
     // Master limiter (strict ceiling so extreme sweeps never clip speakers)
     const limiter = ctx.createDynamicsCompressor();
@@ -162,6 +243,24 @@ export class AudioEngine {
     this.lfoFilterGain.connect(this.masterFilter.frequency);
     this.lfoPanGain.connect(this.leadPanner.pan);
     this.lfoOsc.start();
+
+    // LFO 2 (Multi-wave, continuous rate, multi-destination)
+    this.lfo2Osc = ctx.createOscillator();
+    this.lfo2Osc.type = state.lfo2Shape;
+    this.lfo2Osc.frequency.value = 1.0;
+    this.lfo2CutoffGain = ctx.createGain();
+    this.lfo2ResoGain = ctx.createGain();
+    this.lfo2PanGain = ctx.createGain();
+    this.lfo2CombGain = ctx.createGain();
+    this.lfo2Osc.connect(this.lfo2CutoffGain);
+    this.lfo2Osc.connect(this.lfo2ResoGain);
+    this.lfo2Osc.connect(this.lfo2PanGain);
+    this.lfo2Osc.connect(this.lfo2CombGain);
+    this.lfo2CutoffGain.connect(this.masterFilter.frequency);
+    this.lfo2ResoGain.connect(this.masterFilter.Q);
+    this.lfo2PanGain.connect(this.leadPanner.pan);
+    this.lfo2CombGain.connect(this.combDelay.delayTime);
+    this.lfo2Osc.start();
     this.ringGain.connect(this.masterFilter);
     this.dryBus.connect(this.breakdownFilter);
     this.masterFilter.connect(this.breakdownFilter);
@@ -173,19 +272,108 @@ export class AudioEngine {
 
     this.delaySend.connect(this.delayNode);
     this.delayNode.connect(delayFilter);
-    delayFilter.connect(this.delayFeedback);
-    this.delayFeedback.connect(this.delayNode);
-    delayFilter.connect(this.breakdownFilter);
+    delayFilter.connect(delayClip);
+    delayClip.connect(this.delayFeedback);
+    this.delayFeedback.connect(this.delayNodeR);
+    this.delayNodeR.connect(delayFilterR);
+    delayFilterR.connect(this.delayFeedbackCross);
+    this.delayFeedbackCross.connect(this.delayNode);
+
+    delayFilter.connect(this.delayPanL);
+    delayFilterR.connect(this.delayPanR);
+    this.delayPanL.connect(this.breakdownFilter);
+    this.delayPanR.connect(this.breakdownFilter);
+
+    // Comb Filter routing
+    this.combInput.connect(this.combDelay);
+    this.combDelay.connect(combDamp);
+    combDamp.connect(this.combFeedback);
+    this.combFeedback.connect(this.combDelay);
+    combDamp.connect(this.combWetGain);
+    this.combWetGain.connect(this.breakdownFilter);
+
+    // Gated Reverb routing
+    this.gatedReverbInput.connect(this.gatedReverbNode);
+    this.gatedReverbNode.connect(this.gatedReverbGate);
+    this.gatedReverbGate.connect(this.percBus);
 
     // Master chain (percBus bypasses kick saturation/limiter so kick never squashes clap/hats)
     this.breakdownFilter.connect(this.crusher);
     this.crusher.connect(this.saturator);
     this.saturator.connect(limiter);
-    limiter.connect(this.masterGain);
-    this.percBus.connect(this.masterGain);
+
+    // 3-Band DJ Isolator EQ (parallel 220Hz / 2.8kHz crossover) -> Bipolar DJ Filter -> Master Gain
+    const eqInput = ctx.createGain();
+    limiter.connect(eqInput);
+    this.percBus.connect(eqInput);
+
+    const lowLp = ctx.createBiquadFilter();
+    lowLp.type = 'lowpass';
+    lowLp.frequency.value = 220;
+    lowLp.Q.value = 0.707;
+    this.eqLowGain = ctx.createGain();
+    this.eqLowGain.gain.value = 1;
+
+    const midHp = ctx.createBiquadFilter();
+    midHp.type = 'highpass';
+    midHp.frequency.value = 220;
+    midHp.Q.value = 0.707;
+    const midLp = ctx.createBiquadFilter();
+    midLp.type = 'lowpass';
+    midLp.frequency.value = 2800;
+    midLp.Q.value = 0.707;
+    this.eqMidGain = ctx.createGain();
+    this.eqMidGain.gain.value = 1;
+
+    const highHp = ctx.createBiquadFilter();
+    highHp.type = 'highpass';
+    highHp.frequency.value = 2800;
+    highHp.Q.value = 0.707;
+    this.eqHighGain = ctx.createGain();
+    this.eqHighGain.gain.value = 1;
+
+    this.djFilterNode = ctx.createBiquadFilter();
+    this.djFilterNode.type = 'lowpass';
+    this.djFilterNode.frequency.value = 20000;
+    this.djFilterNode.Q.value = 0.707;
+
+    eqInput.connect(lowLp);
+    lowLp.connect(this.eqLowGain);
+    this.eqLowGain.connect(this.djFilterNode);
+
+    eqInput.connect(midHp);
+    midHp.connect(midLp);
+    midLp.connect(this.eqMidGain);
+    this.eqMidGain.connect(this.djFilterNode);
+
+    eqInput.connect(highHp);
+    highHp.connect(this.eqHighGain);
+    this.eqHighGain.connect(this.djFilterNode);
+
+    this.djFilterNode.connect(this.masterGain);
     this.masterGain.connect(ctx.destination);
 
     this.syncParameters();
+  }
+
+  /** Connect a voice output to per-channel Delay & Reverb Dub Matrix sends */
+  public connectDubSends(node: AudioNode, channel: DubChannel): void {
+    const ch = this.channelSends?.[channel];
+    if (!ch) return;
+    node.connect(ch.delay);
+    node.connect(ch.reverb);
+  }
+
+  /** Trigger 80s-style Gated Reverb burst on clap/tom hits */
+  public triggerGatedReverb(node: AudioNode, time: number): void {
+    if (!this.ctx || state.gatedReverbMix <= 0.01) return;
+    node.connect(this.gatedReverbInput);
+    const g = this.gatedReverbGate.gain;
+    const holdSec = 0.04 + state.gatedReverbTime * 0.26;
+    g.cancelScheduledValues(time);
+    g.setValueAtTime(state.gatedReverbMix * 0.9, time);
+    g.setValueAtTime(state.gatedReverbMix * 0.9, time + holdSec);
+    g.linearRampToValueAtTime(0.0001, time + holdSec + 0.025);
   }
 
   /** Duck the sidechain bus on kick triggers for that minimal techno pump */
@@ -209,12 +397,46 @@ export class AudioEngine {
     const rateHz =
       state.lfoRate === 'slow' ? 0.45 : state.lfoRate === 'med' ? 1.8 : state.lfoRate === 'fast' ? 5.2 : 0;
 
-    // Filter cutoff (exponential 140Hz .. 8500Hz) + safe resonance from directional sweeps
+    // Filter cutoff (exponential 140Hz .. 8500Hz) + S&H / EnvFol modulation
     const cutoff = 140 * Math.pow(60, effFilter);
     const driftDarkness = 0.45 + 0.55 * state.minimalAmount;
-    const baseFilterHz = cutoff * driftDarkness;
+    const shCutMul =
+      state.shRate !== 'off' && state.shDest === 'cutoff'
+        ? Math.pow(2, state.shValue * state.shDepth * 1.6)
+        : 1;
+    const envCutMul =
+      state.envFolSource !== 'off' && state.envFolDest === 'cutoff'
+        ? 1 + state.envFolLevel * state.envFolAmount * 2.2
+        : 1;
+    const baseFilterHz = Math.max(80, Math.min(16000, cutoff * driftDarkness * shCutMul * envCutMul));
     this.masterFilter.frequency.setTargetAtTime(baseFilterHz, now, 0.04);
     this.masterFilter.Q.setTargetAtTime(0.7 + state.resonanceNorm * 4.5, now, 0.05);
+
+    // LFO 2 sync
+    if (this.lfo2Osc.type !== state.lfo2Shape) this.lfo2Osc.type = state.lfo2Shape;
+    const lfo2Hz = 0.1 * Math.pow(120, state.lfo2Rate);
+    this.lfo2Osc.frequency.setTargetAtTime(lfo2Hz, now, 0.03);
+    const lfo2D = state.lfo2Depth;
+    this.lfo2CutoffGain.gain.setTargetAtTime(
+      state.lfo2Dest === 'cutoff' ? baseFilterHz * 0.65 * lfo2D : 0,
+      now,
+      0.04
+    );
+    this.lfo2ResoGain.gain.setTargetAtTime(
+      state.lfo2Dest === 'reso' ? 4.5 * lfo2D : 0,
+      now,
+      0.04
+    );
+    this.lfo2PanGain.gain.setTargetAtTime(
+      state.lfo2Dest === 'pan' ? 0.9 * lfo2D : 0,
+      now,
+      0.04
+    );
+    this.lfo2CombGain.gain.setTargetAtTime(
+      state.lfo2Dest === 'comb' ? 0.008 * lfo2D : 0,
+      now,
+      0.04
+    );
 
     if (rateHz > 0) {
       this.lfoOsc.frequency.setTargetAtTime(rateHz, now, 0.03);
@@ -250,11 +472,28 @@ export class AudioEngine {
       now,
       0.06
     );
-    this.delayFeedback.gain.setTargetAtTime(
-      Math.min(0.86, state.delayFeedback * 0.72 + space * 0.18 + modeFbBoost + tension * 0.14),
-      now,
-      0.06
-    );
+    const envFbBoost =
+      state.envFolSource !== 'off' && state.envFolDest === 'delayFb'
+        ? state.envFolLevel * state.envFolAmount * 0.35
+        : 0;
+    const fbVal = Math.min(0.92, state.delayFeedback * 0.78 + space * 0.16 + modeFbBoost + tension * 0.14 + envFbBoost);
+    this.delayFeedback.gain.setTargetAtTime(fbVal, now, 0.06);
+    this.delayFeedbackCross.gain.setTargetAtTime(state.pingPong ? fbVal : fbVal * 0.5, now, 0.06);
+    this.delayPanL.pan.setTargetAtTime(state.pingPong ? -0.78 : -0.1, now, 0.05);
+    this.delayPanR.pan.setTargetAtTime(state.pingPong ? 0.78 : 0.1, now, 0.05);
+
+    // Per-channel Dub Matrix sends
+    for (const ch of Object.keys(this.channelSends) as DubChannel[]) {
+      const bus = this.channelSends[ch];
+      bus.delay.gain.setTargetAtTime(state.dubDelaySend[ch], now, 0.03);
+      bus.reverb.gain.setTargetAtTime(state.dubReverbSend[ch], now, 0.03);
+    }
+
+    // Comb Filter / Resonator
+    const combSec = 0.001 + state.combTune * 0.029;
+    this.combDelay.delayTime.setTargetAtTime(combSec, now, 0.03);
+    this.combFeedback.gain.setTargetAtTime(Math.min(0.92, state.combFeedback * 0.92), now, 0.03);
+    this.combWetGain.gain.setTargetAtTime(state.combMix * 0.65, now, 0.03);
 
     // Breakdown & Tension HPF sweep
     const hpFreq = state.fx.breakdown ? 720 : 22 + tension * 620;
@@ -278,6 +517,7 @@ export class AudioEngine {
             ? 0.045
             : beatSec * 0.75;
     this.delayNode.delayTime.setTargetAtTime(delaySec, now, 0.06);
+    this.delayNodeR.delayTime.setTargetAtTime(delaySec, now, 0.06);
 
     const driveCurveAmt = 2 + state.driveAmount * 52;
     this.saturator.curve = makeSaturationCurve(driveCurveAmt);
@@ -285,6 +525,36 @@ export class AudioEngine {
     // Experimental Ring Modulator
     this.ringGain.gain.setTargetAtTime(1 - state.ringMod * 0.45, now, 0.04);
     this.ringDepth.gain.setTargetAtTime(state.ringMod * 0.95, now, 0.04);
+
+    // 3-Band DJ Isolator EQ (0.75 = unity 0dB, 1.0 = +5dB, 0 = cut, Kill = 0)
+    const mapEqGain = (val: number, killed: boolean): number => {
+      if (killed) return 0;
+      if (val <= 0.75) return Math.pow(Math.max(0, val) / 0.75, 1.8);
+      return 1 + ((val - 0.75) / 0.25) * 0.8;
+    };
+    this.eqLowGain.gain.setTargetAtTime(mapEqGain(state.eqLow, state.eqKill.low), now, 0.02);
+    this.eqMidGain.gain.setTargetAtTime(mapEqGain(state.eqMid, state.eqKill.mid), now, 0.02);
+    this.eqHighGain.gain.setTargetAtTime(mapEqGain(state.eqHigh, state.eqKill.high), now, 0.02);
+
+    // Bipolar DJ Master Filter (center 0.5 = bypass, <0.5 = resonant LPF, >0.5 = resonant HPF)
+    const dj = state.djFilter;
+    if (Math.abs(dj - 0.5) < 0.02) {
+      if (this.djFilterNode.type !== 'lowpass') this.djFilterNode.type = 'lowpass';
+      this.djFilterNode.frequency.setTargetAtTime(20000, now, 0.03);
+      this.djFilterNode.Q.setTargetAtTime(0.707, now, 0.03);
+    } else if (dj < 0.5) {
+      if (this.djFilterNode.type !== 'lowpass') this.djFilterNode.type = 'lowpass';
+      const t = dj / 0.48;
+      const freq = 120 * Math.pow(150, Math.max(0, Math.min(1, t)));
+      this.djFilterNode.frequency.setTargetAtTime(freq, now, 0.025);
+      this.djFilterNode.Q.setTargetAtTime(2.4, now, 0.03);
+    } else {
+      if (this.djFilterNode.type !== 'highpass') this.djFilterNode.type = 'highpass';
+      const t = (dj - 0.52) / 0.48;
+      const freq = 25 * Math.pow(240, Math.max(0, Math.min(1, t)));
+      this.djFilterNode.frequency.setTargetAtTime(freq, now, 0.025);
+      this.djFilterNode.Q.setTargetAtTime(2.4, now, 0.03);
+    }
   }
 }
 

@@ -26,6 +26,25 @@ export type SampleAutoMode = 'off' | 'bar' | 'groove';
 export type BassTone = 'saw' | 'sqr' | 'acid' | 'sub';
 export type PatternSlotId = 'A' | 'B' | 'C' | 'D';
 export type PatternInst = 'kick' | 'perc' | 'bass' | 'lead';
+export type DubChannel = 'kick' | 'perc' | 'hat' | 'clap' | 'bass' | 'lead' | 'stab';
+export type Lfo2Shape = 'sine' | 'triangle' | 'sawtooth' | 'square';
+export type Lfo2Dest = 'cutoff' | 'reso' | 'pan' | 'comb';
+export type ShRate = 'off' | '1/16' | '1/8' | '1/4' | '1/2';
+export type ShDest = 'cutoff' | 'pitch' | 'hatDecay' | 'fmWarp';
+export type EnvFolSource = 'off' | 'kick' | 'perc' | 'clap';
+export type EnvFolDest = 'hatDecay' | 'delayFb' | 'cutoff';
+
+export interface SceneSnapshot {
+  filterCutoffNorm: number;
+  resonanceNorm: number;
+  driveAmount: number;
+  spaceNorm: number;
+  delayFeedback: number;
+  crushAmount: number;
+  ringMod: number;
+  fmWarp: number;
+  djFilter: number;
+}
 
 export interface PercPattern {
   perc: boolean[];
@@ -135,6 +154,37 @@ export interface AppState {
   bassTone: BassTone;
   bassCutoff: number;
   bassDecay: number;
+  bassEnvMod: number;
+  bassEnvDecay: number;
+  bassWavefold: number;
+  bassAccents: boolean[];
+  bassSlides: boolean[];
+  /** Continuous Drum Synthesis Dials */
+  kickPitchDecay: number;
+  kickPunch: number;
+  hatDecay: number;
+  clapSnap: number;
+  percFmIndex: number;
+  /** Generative Sequencer: Turing Machine, Polyrhythms & Step Ratchets */
+  turingEnabled: boolean;
+  turingMutate: number;
+  turingTarget: 'lead' | 'bass';
+  turingBuffer: number[];
+  trackLengths: {
+    kick: number;
+    perc: number;
+    hat: number;
+    clap: number;
+    tom: number;
+    bass: number;
+    lead: number;
+  };
+  ratchetProb: number;
+  ratchetSteps: {
+    perc: number[];
+    hat: number[];
+    clap: number[];
+  };
   stabSteps: boolean[];
   arpMultiplier: number;
   arpSeedIndices: number[];
@@ -187,6 +237,41 @@ export interface AppState {
     tapeSag: boolean;
     stutter: boolean;
   };
+  /** Master DJ Isolator, Bipolar Filter & Scene Crossfader */
+  djFilter: number;
+  eqLow: number;
+  eqMid: number;
+  eqHigh: number;
+  eqKill: {
+    low: boolean;
+    mid: boolean;
+    high: boolean;
+  };
+  sceneXfade: number;
+  sceneA: SceneSnapshot;
+  sceneB: SceneSnapshot;
+  /** Dub Matrix: Per-channel FX sends, Ping-Pong, Comb Resonator & Gated Reverb */
+  dubDelaySend: Record<DubChannel, number>;
+  dubReverbSend: Record<DubChannel, number>;
+  pingPong: boolean;
+  combMix: number;
+  combTune: number;
+  combFeedback: number;
+  gatedReverbMix: number;
+  gatedReverbTime: number;
+  /** Modulation Matrix: LFO 2, Sample & Hold, Envelope Follower */
+  lfo2Shape: Lfo2Shape;
+  lfo2Rate: number;
+  lfo2Depth: number;
+  lfo2Dest: Lfo2Dest;
+  shRate: ShRate;
+  shDepth: number;
+  shDest: ShDest;
+  shValue: number;
+  envFolSource: EnvFolSource;
+  envFolDest: EnvFolDest;
+  envFolAmount: number;
+  envFolLevel: number;
   currentStep: number;
   currentBar: number;
   kickPulse: number;
@@ -316,6 +401,35 @@ export const state: AppState = {
   bassTone: 'saw',
   bassCutoff: 0.45,
   bassDecay: 0.45,
+  bassEnvMod: 0.45,
+  bassEnvDecay: 0.35,
+  bassWavefold: 0,
+  bassAccents: Array.from({ length: 16 }, (_, i) => i % 4 === 2),
+  bassSlides: new Array(16).fill(false),
+  kickPitchDecay: 0.45,
+  kickPunch: 0.5,
+  hatDecay: 0.4,
+  clapSnap: 0.5,
+  percFmIndex: 0.5,
+  turingEnabled: false,
+  turingMutate: 0.15,
+  turingTarget: 'lead',
+  turingBuffer: Array.from({ length: 16 }, () => Math.floor(Math.random() * 10)),
+  trackLengths: {
+    kick: 16,
+    perc: 16,
+    hat: 16,
+    clap: 16,
+    tom: 16,
+    bass: 16,
+    lead: 16,
+  },
+  ratchetProb: 0,
+  ratchetSteps: {
+    perc: new Array(16).fill(1),
+    hat: new Array(16).fill(1),
+    clap: new Array(16).fill(1),
+  },
   stabSteps: euclidean(3, 16, 2),
   arpMultiplier: 1,
   arpSeedIndices: [0, 2, 4, 7],
@@ -362,6 +476,74 @@ export const state: AppState = {
     tapeSag: false,
     stutter: false,
   },
+  djFilter: 0.5,
+  eqLow: 0.75,
+  eqMid: 0.75,
+  eqHigh: 0.75,
+  eqKill: {
+    low: false,
+    mid: false,
+    high: false,
+  },
+  sceneXfade: 0,
+  sceneA: {
+    filterCutoffNorm: 0.56,
+    resonanceNorm: 0.2,
+    driveAmount: 0.45,
+    spaceNorm: 0.35,
+    delayFeedback: 0.36,
+    crushAmount: 0,
+    ringMod: 0,
+    fmWarp: 0,
+    djFilter: 0.5,
+  },
+  sceneB: {
+    filterCutoffNorm: 0.84,
+    resonanceNorm: 0.68,
+    driveAmount: 0.78,
+    spaceNorm: 0.82,
+    delayFeedback: 0.72,
+    crushAmount: 0.28,
+    ringMod: 0.18,
+    fmWarp: 0.35,
+    djFilter: 0.58,
+  },
+  dubDelaySend: {
+    kick: 0,
+    perc: 0.35,
+    hat: 0.15,
+    clap: 0.65,
+    bass: 0,
+    lead: 0.55,
+    stab: 0.75,
+  },
+  dubReverbSend: {
+    kick: 0,
+    perc: 0.25,
+    hat: 0.25,
+    clap: 0.55,
+    bass: 0.1,
+    lead: 0.5,
+    stab: 0.65,
+  },
+  pingPong: true,
+  combMix: 0,
+  combTune: 0.42,
+  combFeedback: 0.55,
+  gatedReverbMix: 0,
+  gatedReverbTime: 0.35,
+  lfo2Shape: 'triangle',
+  lfo2Rate: 0.25,
+  lfo2Depth: 0,
+  lfo2Dest: 'cutoff',
+  shRate: 'off',
+  shDepth: 0,
+  shDest: 'cutoff',
+  shValue: 0,
+  envFolSource: 'off',
+  envFolDest: 'hatDecay',
+  envFolAmount: 0.5,
+  envFolLevel: 0,
   currentStep: 0,
   currentBar: 0,
   kickPulse: 0,
@@ -499,4 +681,33 @@ export function createNode(
     voice,
     pulse: 1.0,
   };
+}
+
+const SCENE_KEYS: (keyof SceneSnapshot)[] = [
+  'filterCutoffNorm',
+  'resonanceNorm',
+  'driveAmount',
+  'spaceNorm',
+  'delayFeedback',
+  'crushAmount',
+  'ringMod',
+  'fmWarp',
+  'djFilter',
+];
+
+/** Snapshot current timbre & FX knobs into Scene A or B */
+export function captureScene(slot: 'A' | 'B'): void {
+  const target = slot === 'A' ? state.sceneA : state.sceneB;
+  for (const key of SCENE_KEYS) {
+    target[key] = state[key];
+  }
+}
+
+/** Interpolate mapped timbre & FX knobs between Scene A (t=0) and Scene B (t=1) */
+export function applySceneXfade(t: number): void {
+  const clamped = Math.max(0, Math.min(1, t));
+  state.sceneXfade = clamped;
+  for (const key of SCENE_KEYS) {
+    state[key] = state.sceneA[key] + (state.sceneB[key] - state.sceneA[key]) * clamped;
+  }
 }

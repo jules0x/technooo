@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>DRIFT // Minimal &amp; Dark Space Console</title>
-    <script type="module" crossorigin src="/assets/index-FtetOknF.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-DKx49Kjj.css">
+    <script type="module" crossorigin src="/assets/index-DRGiNJOR.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Bytg1vRe.css">
   </head>
   <body>
     <!-- Top Transport & Performance FX Bar -->
@@ -68,7 +68,11 @@
             <button class="picker-chip active" data-toggle-module="lead">LEAD // SYNTH &amp; ARP</button>
             <button class="picker-chip active" data-toggle-module="geom">GEO SHAPE</button>
             <button class="picker-chip active" data-toggle-module="filter">FILTER, DRIVE &amp; LFO</button>
+            <button class="picker-chip active" data-toggle-module="djMaster">MASTER // DJ &amp; SCENES</button>
             <button class="picker-chip active" data-toggle-module="pad">DRONE &amp; SPACE FX</button>
+            <button class="picker-chip active" data-toggle-module="dubMatrix">DUB MATRIX // SENDS</button>
+            <button class="picker-chip active" data-toggle-module="modMatrix">MOD MATRIX // LFO2 &amp; S&amp;H</button>
+            <button class="picker-chip active" data-toggle-module="generative">GENERATIVE // TURING &amp; POLY</button>
             <button class="picker-chip active" data-toggle-module="modifiers">MODIFIERS &amp; BLEEPS</button>
           </div>
         </div>
@@ -227,6 +231,53 @@
               EUCLID MUTATE
             </button>
           </div>
+          <div class="knob-row">
+            <div class="knob-unit" id="knob-kick-sweep" data-knob="kickPitchDecay" title="Drag up/down: Kick Pitch Sweep Time">
+              <svg class="knob-svg" viewBox="0 0 44 44">
+                <circle class="knob-track" cx="22" cy="22" r="16" />
+                <circle class="knob-arc" cx="22" cy="22" r="16" />
+                <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+              </svg>
+              <span class="knob-val" id="val-knob-kick-sweep">45%</span>
+              <span class="knob-lbl">K.SWEEP</span>
+            </div>
+            <div class="knob-unit" id="knob-kick-punch" data-knob="kickPunch" title="Drag up/down: Kick Start Punch">
+              <svg class="knob-svg" viewBox="0 0 44 44">
+                <circle class="knob-track" cx="22" cy="22" r="16" />
+                <circle class="knob-arc" cx="22" cy="22" r="16" />
+                <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+              </svg>
+              <span class="knob-val" id="val-knob-kick-punch">50%</span>
+              <span class="knob-lbl">K.PUNCH</span>
+            </div>
+            <div class="knob-unit" id="knob-hat-decay" data-knob="hatDecay" title="Drag up/down: Hi-Hat Decay">
+              <svg class="knob-svg" viewBox="0 0 44 44">
+                <circle class="knob-track" cx="22" cy="22" r="16" />
+                <circle class="knob-arc" cx="22" cy="22" r="16" />
+                <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+              </svg>
+              <span class="knob-val" id="val-knob-hat-decay">40%</span>
+              <span class="knob-lbl">HAT DEC</span>
+            </div>
+            <div class="knob-unit" id="knob-clap-snap" data-knob="clapSnap" title="Drag up/down: Clap/Snare Body Snap">
+              <svg class="knob-svg" viewBox="0 0 44 44">
+                <circle class="knob-track" cx="22" cy="22" r="16" />
+                <circle class="knob-arc" cx="22" cy="22" r="16" />
+                <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+              </svg>
+              <span class="knob-val" id="val-knob-clap-snap">50%</span>
+              <span class="knob-lbl">CLP SNP</span>
+            </div>
+            <div class="knob-unit" id="knob-perc-fm" data-knob="percFmIndex" title="Drag up/down: Micro-Perc FM Index">
+              <svg class="knob-svg" viewBox="0 0 44 44">
+                <circle class="knob-track" cx="22" cy="22" r="16" />
+                <circle class="knob-arc" cx="22" cy="22" r="16" />
+                <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+              </svg>
+              <span class="knob-val" id="val-knob-perc-fm">50%</span>
+              <span class="knob-lbl">PRC FM</span>
+            </div>
+          </div>
         </div>
 
         <div class="rack-card span-2" data-module="patterns">
@@ -376,6 +427,33 @@
                   </svg>
                   <span class="knob-val" id="val-knob-bass-decay">45%</span>
                   <span class="knob-lbl">DECAY</span>
+                </div>
+                <div class="knob-unit" id="knob-bass-envmod" data-knob="bassEnvMod" title="Drag up/down: 303 Acid Filter Env Depth">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-bass-envmod">45%</span>
+                  <span class="knob-lbl">ENV MOD</span>
+                </div>
+                <div class="knob-unit" id="knob-bass-envdec" data-knob="bassEnvDecay" title="Drag up/down: 303 Acid Filter Env Decay">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-bass-envdec">35%</span>
+                  <span class="knob-lbl">ENV DEC</span>
+                </div>
+                <div class="knob-unit" id="knob-bass-fold" data-knob="bassWavefold" title="Drag up/down: West-Coast Wavefolder">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-bass-fold">0%</span>
+                  <span class="knob-lbl">WAVEFOLD</span>
                 </div>
               </div>
             </div>
@@ -663,6 +741,82 @@
           </div>
         </div>
 
+        <div class="rack-card span-2" data-module="djMaster">
+          <div class="rack-head">
+            <span class="rack-title">MASTER // DJ &amp; SCENES</span>
+            <button class="rel-pill" data-focus-module="filter">→ FILTER &amp; FX</button>
+            <button class="mod-hide-btn" data-hide-module="djMaster" title="Hide Module">×</button>
+          </div>
+          <div class="lead-split">
+            <div class="lead-col">
+              <div class="oled-screen" id="oled-dj">DJ FLT BYP · EQ 0/0/0</div>
+              <div class="knob-row">
+                <div class="knob-unit" id="knob-dj-filter" data-knob="djFilter" title="Drag up/down: Bipolar DJ Filter (Center = Bypass, Left = LPF, Right = HPF)">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-dj-filter">BYP</span>
+                  <span class="knob-lbl">DJ FLT</span>
+                </div>
+                <div class="eq-strip">
+                  <div class="knob-unit" id="knob-eq-low" data-knob="eqLow" title="Drag up/down: Low Isolator (&lt;220Hz)">
+                    <svg class="knob-svg" viewBox="0 0 44 44">
+                      <circle class="knob-track" cx="22" cy="22" r="16" />
+                      <circle class="knob-arc" cx="22" cy="22" r="16" />
+                      <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                    </svg>
+                    <span class="knob-val" id="val-knob-eq-low">0dB</span>
+                    <span class="knob-lbl">LOW</span>
+                  </div>
+                  <button class="seg-btn kill-btn" id="btn-kill-low" title="Kill Low Band">KILL</button>
+                </div>
+                <div class="eq-strip">
+                  <div class="knob-unit" id="knob-eq-mid" data-knob="eqMid" title="Drag up/down: Mid Isolator (220Hz-2.8kHz)">
+                    <svg class="knob-svg" viewBox="0 0 44 44">
+                      <circle class="knob-track" cx="22" cy="22" r="16" />
+                      <circle class="knob-arc" cx="22" cy="22" r="16" />
+                      <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                    </svg>
+                    <span class="knob-val" id="val-knob-eq-mid">0dB</span>
+                    <span class="knob-lbl">MID</span>
+                  </div>
+                  <button class="seg-btn kill-btn" id="btn-kill-mid" title="Kill Mid Band">KILL</button>
+                </div>
+                <div class="eq-strip">
+                  <div class="knob-unit" id="knob-eq-high" data-knob="eqHigh" title="Drag up/down: High Isolator (&gt;2.8kHz)">
+                    <svg class="knob-svg" viewBox="0 0 44 44">
+                      <circle class="knob-track" cx="22" cy="22" r="16" />
+                      <circle class="knob-arc" cx="22" cy="22" r="16" />
+                      <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                    </svg>
+                    <span class="knob-val" id="val-knob-eq-high">0dB</span>
+                    <span class="knob-lbl">HIGH</span>
+                  </div>
+                  <button class="seg-btn kill-btn" id="btn-kill-high" title="Kill High Band">KILL</button>
+                </div>
+              </div>
+            </div>
+
+            <div class="lead-col">
+              <div class="oled-screen" id="oled-scene">SCENE A ◄── 0% ──► B</div>
+              <div class="scene-xfade-box">
+                <div class="scene-btn-row">
+                  <button class="ctrl-btn compact" id="btn-cap-a" title="Snapshot current Filter/FX knobs to Scene A">CAP A</button>
+                  <span class="grp-lbl">XFADER</span>
+                  <button class="ctrl-btn compact" id="btn-cap-b" title="Snapshot current Filter/FX knobs to Scene B">CAP B</button>
+                </div>
+                <div class="xfade-track-wrap">
+                  <span class="xfade-tag">A</span>
+                  <input id="scene-xfader" class="scene-xfader" type="range" min="0" max="100" value="0" title="Morph between Scene A and Scene B" />
+                  <span class="xfade-tag">B</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="rack-card span-2" data-module="pad">
           <div class="rack-head">
             <span class="rack-title">DRONE // PAD &amp; SPACE FX</span>
@@ -737,6 +891,244 @@
                   <span class="knob-val" id="val-knob-delay-fb">36%</span>
                   <span class="knob-lbl">FEEDBK</span>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rack-card span-2" data-module="dubMatrix">
+          <div class="rack-head">
+            <span class="rack-title">DUB MATRIX // SENDS, COMB &amp; GATED REV</span>
+            <button class="rel-pill" data-focus-module="pad">→ SPACE FX</button>
+            <button class="mod-hide-btn" data-hide-module="dubMatrix" title="Hide Module">×</button>
+          </div>
+          <div class="lead-split">
+            <div class="lead-col">
+              <div class="rack-row">
+                <span class="grp-lbl">DELAY</span>
+                <button id="btn-ping-pong" class="ctrl-btn compact playing" title="Toggle Stereo Ping-Pong Delay">PING-PONG: ON</button>
+              </div>
+              <div class="knob-row">
+                <div class="knob-unit" id="knob-comb-mix" data-knob="combMix" title="Drag up/down: Comb Filter / Resonator Mix">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-comb-mix">0%</span>
+                  <span class="knob-lbl">COMB MIX</span>
+                </div>
+                <div class="knob-unit" id="knob-comb-tune" data-knob="combTune" title="Drag up/down: Comb Resonator Delay Time (1-30ms)">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-comb-tune">13ms</span>
+                  <span class="knob-lbl">COMB TUNE</span>
+                </div>
+                <div class="knob-unit" id="knob-comb-fb" data-knob="combFb" title="Drag up/down: Comb Resonator Feedback">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-comb-fb">55%</span>
+                  <span class="knob-lbl">COMB FB</span>
+                </div>
+                <div class="knob-unit" id="knob-gate-mix" data-knob="gateMix" title="Drag up/down: 80s Gated Reverb on Clap/Tom">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-gate-mix">0%</span>
+                  <span class="knob-lbl">GATE REV</span>
+                </div>
+                <div class="knob-unit" id="knob-gate-time" data-knob="gateTime" title="Drag up/down: Gated Reverb Hold Time (40-300ms)">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-gate-time">131ms</span>
+                  <span class="knob-lbl">GATE MS</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="lead-col">
+              <div class="dub-matrix-grid">
+                <div class="dub-hdr"><span>CH</span><span>DELAY</span><span>REVERB</span></div>
+                <div class="dub-row"><span>KICK</span><input class="mixer-fader" type="range" min="0" max="100" value="0" data-dub-delay="kick" /><input class="mixer-fader" type="range" min="0" max="100" value="0" data-dub-reverb="kick" /></div>
+                <div class="dub-row"><span>PERC</span><input class="mixer-fader" type="range" min="0" max="100" value="35" data-dub-delay="perc" /><input class="mixer-fader" type="range" min="0" max="100" value="25" data-dub-reverb="perc" /></div>
+                <div class="dub-row"><span>HAT</span><input class="mixer-fader" type="range" min="0" max="100" value="15" data-dub-delay="hat" /><input class="mixer-fader" type="range" min="0" max="100" value="25" data-dub-reverb="hat" /></div>
+                <div class="dub-row"><span>CLAP</span><input class="mixer-fader" type="range" min="0" max="100" value="65" data-dub-delay="clap" /><input class="mixer-fader" type="range" min="0" max="100" value="55" data-dub-reverb="clap" /></div>
+                <div class="dub-row"><span>BASS</span><input class="mixer-fader" type="range" min="0" max="100" value="0" data-dub-delay="bass" /><input class="mixer-fader" type="range" min="0" max="100" value="10" data-dub-reverb="bass" /></div>
+                <div class="dub-row"><span>LEAD</span><input class="mixer-fader" type="range" min="0" max="100" value="55" data-dub-delay="lead" /><input class="mixer-fader" type="range" min="0" max="100" value="50" data-dub-reverb="lead" /></div>
+                <div class="dub-row"><span>STAB</span><input class="mixer-fader" type="range" min="0" max="100" value="75" data-dub-delay="stab" /><input class="mixer-fader" type="range" min="0" max="100" value="65" data-dub-reverb="stab" /></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rack-card span-2" data-module="modMatrix">
+          <div class="rack-head">
+            <span class="rack-title">MOD MATRIX // LFO 2, S&amp;H &amp; ENV FOLLOWER</span>
+            <button class="rel-pill" data-focus-module="filter">→ FILTER &amp; LFO 1</button>
+            <button class="mod-hide-btn" data-hide-module="modMatrix" title="Hide Module">×</button>
+          </div>
+          <div class="lead-split">
+            <div class="lead-col">
+              <div class="oled-screen" id="oled-mod2">LFO2 TRI 0.7Hz → CUT 0%</div>
+              <div class="rack-row">
+                <span class="grp-lbl">SHAPE</span>
+                <div class="seg-group" id="grp-lfo2-shape">
+                  <button class="seg-btn" data-lfo2-shape="sine">SIN</button>
+                  <button class="seg-btn active" data-lfo2-shape="triangle">TRI</button>
+                  <button class="seg-btn" data-lfo2-shape="sawtooth">SAW</button>
+                  <button class="seg-btn" data-lfo2-shape="square">SQR</button>
+                </div>
+              </div>
+              <div class="rack-row">
+                <span class="grp-lbl">DEST</span>
+                <div class="seg-group" id="grp-lfo2-dest">
+                  <button class="seg-btn active" data-lfo2-dest="cutoff">CUT</button>
+                  <button class="seg-btn" data-lfo2-dest="reso">RES</button>
+                  <button class="seg-btn" data-lfo2-dest="pan">PAN</button>
+                  <button class="seg-btn" data-lfo2-dest="comb">COMB</button>
+                </div>
+              </div>
+              <div class="knob-row">
+                <div class="knob-unit" id="knob-lfo2-rate" data-knob="lfo2Rate" title="Drag up/down: LFO 2 Frequency (0.1 - 12 Hz)">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-lfo2-rate">0.3Hz</span>
+                  <span class="knob-lbl">LFO2 HZ</span>
+                </div>
+                <div class="knob-unit" id="knob-lfo2-depth" data-knob="lfo2Depth" title="Drag up/down: LFO 2 Depth">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-lfo2-depth">0%</span>
+                  <span class="knob-lbl">LFO2 DPT</span>
+                </div>
+                <div class="knob-unit" id="knob-sh-depth" data-knob="shDepth" title="Drag up/down: Sample &amp; Hold Depth">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-sh-depth">0%</span>
+                  <span class="knob-lbl">S&amp;H DPT</span>
+                </div>
+                <div class="knob-unit" id="knob-env-fol" data-knob="envFolAmount" title="Drag up/down: Envelope Follower Amount">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-env-fol">50%</span>
+                  <span class="knob-lbl">ENV AMT</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="lead-col">
+              <div class="rack-row">
+                <span class="grp-lbl">S&amp;H CLK</span>
+                <div class="seg-group" id="grp-sh-rate">
+                  <button class="seg-btn active" data-sh-rate="off">OFF</button>
+                  <button class="seg-btn" data-sh-rate="1/16">1/16</button>
+                  <button class="seg-btn" data-sh-rate="1/8">1/8</button>
+                  <button class="seg-btn" data-sh-rate="1/4">1/4</button>
+                  <button class="seg-btn" data-sh-rate="1/2">1/2</button>
+                </div>
+              </div>
+              <div class="rack-row">
+                <span class="grp-lbl">S&amp;H DST</span>
+                <div class="seg-group" id="grp-sh-dest">
+                  <button class="seg-btn active" data-sh-dest="cutoff">CUT</button>
+                  <button class="seg-btn" data-sh-dest="pitch">PTC</button>
+                  <button class="seg-btn" data-sh-dest="hatDecay">HAT</button>
+                  <button class="seg-btn" data-sh-dest="fmWarp">FM</button>
+                </div>
+              </div>
+              <div class="rack-row">
+                <span class="grp-lbl">ENV SRC</span>
+                <div class="seg-group" id="grp-envfol-src">
+                  <button class="seg-btn active" data-envfol-src="off">OFF</button>
+                  <button class="seg-btn" data-envfol-src="kick">KCK</button>
+                  <button class="seg-btn" data-envfol-src="perc">PRC</button>
+                  <button class="seg-btn" data-envfol-src="clap">CLP</button>
+                </div>
+              </div>
+              <div class="rack-row">
+                <span class="grp-lbl">ENV DST</span>
+                <div class="seg-group" id="grp-envfol-dst">
+                  <button class="seg-btn active" data-envfol-dst="hatDecay">HAT</button>
+                  <button class="seg-btn" data-envfol-dst="delayFb">DLY</button>
+                  <button class="seg-btn" data-envfol-dst="cutoff">CUT</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="rack-card span-2" data-module="generative">
+          <div class="rack-head">
+            <span class="rack-title">GENERATIVE // TURING MACHINE, POLYRHYTHM &amp; RATCHETS</span>
+            <button class="rel-pill" data-focus-module="perc">→ PERC &amp; LEAD</button>
+            <button class="mod-hide-btn" data-hide-module="generative" title="Hide Module">×</button>
+          </div>
+          <div class="lead-split">
+            <div class="lead-col">
+              <div class="oled-screen" id="oled-turing">TURING OFF · MUTATE 15% → LEAD</div>
+              <div class="rack-row">
+                <button id="btn-turing-toggle" class="ctrl-btn compact" title="Toggle Turing Machine Shift Register">TURING: OFF</button>
+                <div class="seg-group" id="grp-turing-target">
+                  <button class="seg-btn active" data-turing-target="lead">LEAD</button>
+                  <button class="seg-btn" data-turing-target="bass">BASS</button>
+                </div>
+                <button id="btn-turing-seed" class="ctrl-btn compact" title="Generate New Turing Loop Seed">NEW SEED</button>
+              </div>
+              <div class="knob-row">
+                <div class="knob-unit" id="knob-turing-mutate" data-knob="turingMutate" title="Drag up/down: Turing Lock (0%) vs Mutate Probability">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-turing-mutate">15%</span>
+                  <span class="knob-lbl">MUTATE</span>
+                </div>
+                <div class="knob-unit" id="knob-ratchet-prob" data-knob="ratchetProb" title="Drag up/down: Random Step Ratchet (2x/3x) Probability">
+                  <svg class="knob-svg" viewBox="0 0 44 44">
+                    <circle class="knob-track" cx="22" cy="22" r="16" />
+                    <circle class="knob-arc" cx="22" cy="22" r="16" />
+                    <line class="knob-ptr" x1="22" y1="22" x2="22" y2="9" />
+                  </svg>
+                  <span class="knob-val" id="val-knob-ratchet-prob">0%</span>
+                  <span class="knob-lbl">RATCHET</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="lead-col">
+              <div class="poly-grid">
+                <div class="poly-hdr">TRACK LENGTHS (1-16) <button id="btn-poly-reset" class="ctrl-btn compact" title="Reset all tracks to 16 steps">16 ALL</button></div>
+                <div class="poly-row"><span>KICK</span><button class="seg-btn" data-poly-dec="kick">-</button><span class="poly-val" id="val-poly-kick">16</span><button class="seg-btn" data-poly-inc="kick">+</button></div>
+                <div class="poly-row"><span>PERC</span><button class="seg-btn" data-poly-dec="perc">-</button><span class="poly-val" id="val-poly-perc">16</span><button class="seg-btn" data-poly-inc="perc">+</button></div>
+                <div class="poly-row"><span>HAT</span><button class="seg-btn" data-poly-dec="hat">-</button><span class="poly-val" id="val-poly-hat">16</span><button class="seg-btn" data-poly-inc="hat">+</button></div>
+                <div class="poly-row"><span>CLAP</span><button class="seg-btn" data-poly-dec="clap">-</button><span class="poly-val" id="val-poly-clap">16</span><button class="seg-btn" data-poly-inc="clap">+</button></div>
+                <div class="poly-row"><span>TOM</span><button class="seg-btn" data-poly-dec="tom">-</button><span class="poly-val" id="val-poly-tom">16</span><button class="seg-btn" data-poly-inc="tom">+</button></div>
+                <div class="poly-row"><span>BASS</span><button class="seg-btn" data-poly-dec="bass">-</button><span class="poly-val" id="val-poly-bass">16</span><button class="seg-btn" data-poly-inc="bass">+</button></div>
+                <div class="poly-row"><span>LEAD</span><button class="seg-btn" data-poly-dec="lead">-</button><span class="poly-val" id="val-poly-lead">16</span><button class="seg-btn" data-poly-inc="lead">+</button></div>
               </div>
             </div>
           </div>

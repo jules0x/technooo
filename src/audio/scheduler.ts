@@ -42,6 +42,7 @@ export class Scheduler {
   private arpStep = 0;
   private stutterStep = 0;
   private lastLeadFreq: number | null = null;
+  private lastBassFreq: number | null = null;
 
   private readonly lookaheadMs = 25;
   private readonly scheduleAheadSec = 0.1;
@@ -134,12 +135,46 @@ export class Scheduler {
     const jitter = state.humanize > 0 ? (Math.random() - 0.5) * 0.018 * state.humanize : 0;
     const grooveTime = Math.max(time, swungTime + jitter);
 
+    // Sample & Hold + Envelope Follower decay
+    state.envFolLevel *= 0.65;
+    if (state.shRate !== 'off') {
+      const shDiv = state.shRate === '1/16' ? 1 : state.shRate === '1/8' ? 2 : state.shRate === '1/4' ? 4 : 8;
+      if (step % shDiv === 0) {
+        state.shValue = Math.random() * 2 - 1;
+      }
+    }
+
+    // Polyrhythmic step indices per track (1..16)
+    const kStep = step % Math.max(1, state.trackLengths.kick);
+    const pStep = step % Math.max(1, state.trackLengths.perc);
+    const hStep = step % Math.max(1, state.trackLengths.hat);
+    const cStep = step % Math.max(1, state.trackLengths.clap);
+    const tStep = step % Math.max(1, state.trackLengths.tom);
+    const bStep = step % Math.max(1, state.trackLengths.bass);
+    const lStep = step % Math.max(1, state.trackLengths.lead);
+
+    // Turing Machine probabilistic mutation
+    if (state.turingEnabled && state.turingMutate > 0 && Math.random() < state.turingMutate * 0.35) {
+      const mIdx = state.turingTarget === 'bass' ? bStep : lStep;
+      state.turingBuffer[mIdx] = Math.floor(Math.random() * 14);
+    }
+
+    const getRatchets = (row: 'perc' | 'hat' | 'clap', rowStep: number): number => {
+      const fixed = state.ratchetSteps[row][rowStep] ?? 1;
+      if (fixed > 1) return fixed;
+      if (state.ratchetProb > 0 && Math.random() < state.ratchetProb * 0.45) {
+        return Math.random() < 0.35 ? 3 : 2;
+      }
+      return 1;
+    };
+
     // 1. Kick (editable 16-step pattern) + sidechain pump
-    if (!state.mutes.kick && !state.fx.breakdown && activeKick[step] && minimal > 0.12) {
+    if (!state.mutes.kick && !state.fx.breakdown && activeKick[kStep] && minimal > 0.12) {
       const kickLevel = Math.min(1, minimal * 1.15);
       triggerKick(this.engine, swungTime, kickLevel);
       this.engine.triggerSidechainDuck(swungTime);
       state.kickPulse = 1.0;
+      if (state.envFolSource === 'kick') state.envFolLevel = 1.0;
     }
 
     // 2. Micro-Percussion, Hat, Clap, Tom/Rim & 4-Bar Auto Fill
@@ -149,22 +184,33 @@ export class Scheduler {
       triggerElectroSample(this.engine, 3, grooveTime, state.samplePitch); // RISER sweep into bar 1
     }
     if (minimal > 0.08) {
-      const ghostPerc = state.ghostProb > 0 && !activePerc.perc[step] && Math.random() < state.ghostProb * 0.35;
-      if (!state.mutes.perc && (activePerc.perc[step] || inAutoFill || ghostPerc)) {
-        const accent = !ghostPerc && (step % 4 === 2 || step === 15 || inAutoFill);
-        triggerMicroPerc(this.engine, grooveTime, accent, state.filterCutoffNorm);
+      const ghostPerc = state.ghostProb > 0 && !activePerc.perc[pStep] && Math.random() < state.ghostProb * 0.35;
+      if (!state.mutes.perc && (activePerc.perc[pStep] || inAutoFill || ghostPerc)) {
+        const accent = !ghostPerc && (pStep % 4 === 2 || pStep === 15 || inAutoFill);
+        const rCount = getRatchets('perc', pStep);
+        for (let r = 0; r < rCount; r++) {
+          triggerMicroPerc(this.engine, grooveTime + (stepDur / rCount) * r, accent && r === 0, state.filterCutoffNorm);
+        }
+        if (state.envFolSource === 'perc') state.envFolLevel = 1.0;
         if (state.glitchProb > 0 && Math.random() < state.glitchProb * 0.45) {
           triggerMicroPerc(this.engine, grooveTime + stepDur * 0.5, false, state.filterCutoffNorm);
         }
       }
-      const ghostHat = state.ghostProb > 0 && !activePerc.hat[step] && Math.random() < state.ghostProb * 0.3;
-      if (!state.mutes.hat && (activePerc.hat[step] || inAutoFill || inTensionRoll || ghostHat)) {
-        triggerHatOrRim(this.engine, grooveTime, step % 4 === 2 && !ghostHat);
+      const ghostHat = state.ghostProb > 0 && !activePerc.hat[hStep] && Math.random() < state.ghostProb * 0.3;
+      if (!state.mutes.hat && (activePerc.hat[hStep] || inAutoFill || inTensionRoll || ghostHat)) {
+        const rCount = getRatchets('hat', hStep);
+        for (let r = 0; r < rCount; r++) {
+          triggerHatOrRim(this.engine, grooveTime + (stepDur / rCount) * r, hStep % 4 === 2 && !ghostHat && r === 0);
+        }
       }
-      if (!state.mutes.clap && activePerc.clap[step]) {
-        triggerClapOrSnare(this.engine, grooveTime);
+      if (!state.mutes.clap && activePerc.clap[cStep]) {
+        const rCount = getRatchets('clap', cStep);
+        for (let r = 0; r < rCount; r++) {
+          triggerClapOrSnare(this.engine, grooveTime + (stepDur / rCount) * r);
+        }
+        if (state.envFolSource === 'clap') state.envFolLevel = 1.0;
       }
-      if (!state.mutes.tom && activePerc.tom[step]) {
+      if (!state.mutes.tom && activePerc.tom[tStep]) {
         triggerTomOrRim(this.engine, grooveTime);
       }
       if (!state.mutes.stab && state.stabSteps[step]) {
@@ -178,21 +224,35 @@ export class Scheduler {
         state.bassSpeed === 2
           ? true
           : state.bassSpeed === 1
-            ? step % 2 === 0 || step % 4 === 3
-            : step % 4 === 0;
+            ? bStep % 2 === 0 || bStep % 4 === 3
+            : bStep % 4 === 0;
 
       if (shouldPlay) {
-        const noteIdx = activeBass[step % activeBass.length];
+        const noteIdx =
+          state.turingEnabled && state.turingTarget === 'bass'
+            ? state.turingBuffer[bStep] % 8
+            : activeBass[bStep % activeBass.length];
         const octShift = state.bassOctaveOffset - (state.subDrop ? 1 : 0);
         const midi = scaleIndexToMidi(noteIdx, octShift);
-        const accent = step % 4 === 2;
-        triggerBassOrPluck(this.engine, swungTime, midiToFreq(midi), { accent });
+        const freq = midiToFreq(midi);
+        const accent = state.bassAccents[bStep % 16];
+        const slide = state.bassSlides[bStep % 16];
+        triggerBassOrPluck(this.engine, swungTime, freq, {
+          accent,
+          slide,
+          prevFreq: this.lastBassFreq,
+        });
+        this.lastBassFreq = freq;
       }
     }
 
-    // 4. Sketched & Quantized Lead Melody (with Harmony & Glide)
+    // 4. Sketched & Quantized Lead Melody (or Turing Machine Lead)
     const harmony = getHarmonyOffsets(state.harmonyMode);
-    const melodyIdx = activeLead[step];
+    const turingLeadIdx =
+      state.turingEnabled && state.turingTarget === 'lead' && (lStep % 2 === 0 || state.turingBuffer[lStep] % 3 !== 0)
+        ? state.turingBuffer[lStep]
+        : null;
+    const melodyIdx = turingLeadIdx !== null ? turingLeadIdx : activeLead[lStep];
     if (!state.mutes.lead && melodyIdx !== null && melodyIdx !== undefined) {
       harmony.forEach((offset, hIdx) => {
         const midi = scaleIndexToMidi(melodyIdx + offset, state.bassOctaveOffset + 1);

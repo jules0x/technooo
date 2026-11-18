@@ -9,13 +9,15 @@ export function triggerKick(engine: AudioEngine, time: number, level = 1.0): voi
   const gain = ctx.createGain();
 
   const char = state.kickCharacter;
-  const startFreq = char === 'punch' ? 185 : char === 'sub' ? 115 : 145;
+  const punchScale = 0.65 + state.kickPunch * 0.75;
+  const sweepTime = 0.02 + state.kickPitchDecay * 0.065;
+  const startFreq = (char === 'punch' ? 185 : char === 'sub' ? 115 : 145) * punchScale;
   const endFreq = char === 'sub' ? 28 : 34;
   const dur = char === 'sub' ? 0.52 : char === 'punch' ? 0.34 : 0.36;
 
   osc.type = 'sine';
   osc.frequency.setValueAtTime(startFreq, time);
-  osc.frequency.exponentialRampToValueAtTime(48, time + 0.045);
+  osc.frequency.exponentialRampToValueAtTime(48, time + sweepTime);
   osc.frequency.exponentialRampToValueAtTime(endFreq, time + dur - 0.04);
 
   const lvl = level * state.levels.kick;
@@ -26,6 +28,7 @@ export function triggerKick(engine: AudioEngine, time: number, level = 1.0): voi
 
   osc.connect(gain);
   gain.connect(engine.dryBus);
+  engine.connectDubSends(gain, 'kick');
 
   osc.start(time);
   osc.stop(time + dur + 0.02);
@@ -40,7 +43,7 @@ export function triggerHatOrRim(engine: AudioEngine, time: number, accent: boole
   const ctx = engine.ctx;
   const kit = state.percKit;
   const tone = getToneScale();
-  const dur =
+  const baseDur =
     kit === '909'
       ? accent ? 0.16 : 0.05
       : kit === 'dub'
@@ -52,6 +55,18 @@ export function triggerHatOrRim(engine: AudioEngine, time: number, accent: boole
             : accent
               ? 0.09
               : 0.04;
+  const shHatMul =
+    state.shRate !== 'off' && state.shDest === 'hatDecay'
+      ? 1 + Math.max(-0.5, state.shValue * state.shDepth * 0.9)
+      : 1;
+  const envHatMul =
+    state.envFolSource !== 'off' && state.envFolDest === 'hatDecay'
+      ? 1 + state.envFolLevel * state.envFolAmount * 1.8
+      : 1;
+  const dur = Math.max(
+    0.02,
+    Math.min(0.45, baseDur * (0.45 + state.hatDecay * 1.4) * shHatMul * envHatMul)
+  );
   const bufferSize = Math.floor(ctx.sampleRate * dur);
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
   const data = buffer.getChannelData(0);
@@ -81,8 +96,7 @@ export function triggerHatOrRim(engine: AudioEngine, time: number, accent: boole
   noise.connect(filter);
   filter.connect(env);
   env.connect(engine.percBus);
-  env.connect(engine.reverbSend);
-  if (kit === 'dub') env.connect(engine.delaySend);
+  engine.connectDubSends(env, 'hat');
 
   noise.start(time);
   noise.stop(time + dur + 0.01);
@@ -112,8 +126,8 @@ export function triggerTomOrRim(engine: AudioEngine, time: number): void {
 
   osc.connect(env);
   env.connect(engine.percBus);
-  if (kit === 'dub' || kit === '909') env.connect(engine.delaySend);
-  env.connect(engine.reverbSend);
+  engine.connectDubSends(env, 'perc');
+  engine.triggerGatedReverb(env, time);
 
   osc.start(time);
   osc.stop(time + dur + 0.02);
@@ -153,8 +167,8 @@ export function triggerClapOrSnare(engine: AudioEngine, time: number): void {
   noise.connect(bp);
   bp.connect(env);
   env.connect(engine.percBus);
-  env.connect(engine.reverbSend);
-  if (kit === 'glitch') env.connect(engine.delaySend);
+  engine.connectDubSends(env, 'clap');
+  engine.triggerGatedReverb(env, time);
 
   noise.start(time);
   noise.stop(time + dur + 0.01);
@@ -165,8 +179,9 @@ export function triggerClapOrSnare(engine: AudioEngine, time: number): void {
   body.type = 'triangle';
   body.frequency.setValueAtTime((kit === 'wood' ? 280 : 195) * tone, time);
   body.frequency.exponentialRampToValueAtTime(Math.max(55, 95 * tone), time + 0.06);
+  const snapMul = 0.5 + state.clapSnap * 1.1;
   bodyEnv.gain.setValueAtTime(0.001, time);
-  bodyEnv.gain.linearRampToValueAtTime(0.18 * clapLvl, time + 0.002);
+  bodyEnv.gain.linearRampToValueAtTime(0.18 * clapLvl * snapMul, time + 0.002);
   bodyEnv.gain.exponentialRampToValueAtTime(0.001, time + 0.075);
   body.connect(bodyEnv);
   bodyEnv.connect(engine.percBus);
@@ -194,6 +209,10 @@ export function triggerMicroPerc(
   const filter = ctx.createBiquadFilter();
 
   const glitchJump = kit === 'glitch' ? 0.5 + Math.random() * 1.8 : 1.0;
+  const shPitchMul =
+    state.shRate !== 'off' && state.shDest === 'pitch'
+      ? Math.pow(2, state.shValue * state.shDepth * 0.65)
+      : 1.0;
   const baseFreq =
     (kit === 'wood'
       ? 260 + brightness * 380
@@ -203,14 +222,16 @@ export function triggerMicroPerc(
           ? 480 + brightness * 900
           : 880 + brightness * 1400) *
     glitchJump *
+    shPitchMul *
     tone;
 
   carrier.type = kit === 'wood' ? 'sine' : 'triangle';
   carrier.frequency.setValueAtTime(baseFreq, time);
 
+  const fmIdx = 0.3 + state.percFmIndex * 1.5;
   mod.type = kit === 'indust' ? 'sawtooth' : 'sine';
   mod.frequency.setValueAtTime(baseFreq * (kit === 'wood' ? 1.5 : 2.73), time);
-  modGain.gain.setValueAtTime(baseFreq * (kit === 'wood' ? 0.8 : 1.9), time);
+  modGain.gain.setValueAtTime(baseFreq * (kit === 'wood' ? 0.8 : 1.9) * fmIdx, time);
   modGain.gain.exponentialRampToValueAtTime(1, time + 0.035);
 
   filter.type = kit === 'wood' ? 'bandpass' : 'highpass';
@@ -227,8 +248,7 @@ export function triggerMicroPerc(
   carrier.connect(filter);
   filter.connect(env);
   env.connect(engine.percBus);
-  env.connect(engine.reverbSend);
-  env.connect(engine.delaySend);
+  engine.connectDubSends(env, 'perc');
 
   carrier.start(time);
   mod.start(time);
@@ -243,12 +263,17 @@ function attachFmWarp(
   time: number,
   dur: number
 ): void {
-  if (state.fmWarp <= 0.01) return;
+  const shFm =
+    state.shRate !== 'off' && state.shDest === 'fmWarp'
+      ? Math.max(0, state.shValue * 0.5 + 0.5) * state.shDepth * 0.65
+      : 0;
+  const totalFm = Math.min(1, state.fmWarp + shFm);
+  if (totalFm <= 0.01) return;
   const mod = ctx.createOscillator();
   const modGain = ctx.createGain();
   mod.type = 'sine';
   mod.frequency.setValueAtTime(baseFreq * 1.5, time);
-  const peak = baseFreq * state.fmWarp * 2.2;
+  const peak = baseFreq * totalFm * 2.2;
   modGain.gain.setValueAtTime(Math.max(1, peak), time);
   modGain.gain.exponentialRampToValueAtTime(0.5, time + Math.min(dur, 0.22));
   mod.connect(modGain);
@@ -257,12 +282,32 @@ function attachFmWarp(
   mod.stop(time + dur + 0.03);
 }
 
+let cachedFoldStep = -1;
+let cachedFoldCurve: Float32Array<ArrayBuffer> | null = null;
+
+function getWavefoldCurve(amount: number): Float32Array<ArrayBuffer> | null {
+  if (amount <= 0.02) return null;
+  const step = Math.round(amount * 25);
+  if (step === cachedFoldStep && cachedFoldCurve) return cachedFoldCurve;
+  cachedFoldStep = step;
+  const samples = 512;
+  const buf = new ArrayBuffer(samples * Float32Array.BYTES_PER_ELEMENT);
+  const curve = new Float32Array(buf);
+  const gain = 1 + amount * 6.5;
+  for (let i = 0; i < samples; i++) {
+    const x = (i * 2) / samples - 1;
+    curve[i] = Math.sin(x * gain * Math.PI * 0.5);
+  }
+  cachedFoldCurve = curve;
+  return curve;
+}
+
 /** Resonant rolling minimal bass / Lorn-style stretched pluck */
 export function triggerBassOrPluck(
   engine: AudioEngine,
   time: number,
   freq: number,
-  options: { accent?: boolean; isNode?: boolean } = {}
+  options: { accent?: boolean; slide?: boolean; prevFreq?: number | null; isNode?: boolean } = {}
 ): void {
   const ctx = engine.ctx;
   const drift = 1 - state.minimalAmount;
@@ -288,9 +333,18 @@ export function triggerBassOrPluck(
         ? 'sawtooth'
         : 'square';
 
-  osc1.frequency.setValueAtTime(freq * pitchFactor, time);
-  osc2.frequency.setValueAtTime(freq * (options.isNode ? 1.004 : 0.5) * pitchFactor, time);
-  attachFmWarp(ctx, osc1, freq * pitchFactor, time, 0.25);
+  const targetF = freq * pitchFactor;
+  if (options.slide && options.prevFreq && options.prevFreq > 0) {
+    const startF = options.prevFreq * pitchFactor;
+    osc1.frequency.setValueAtTime(startF, time);
+    osc1.frequency.exponentialRampToValueAtTime(targetF, time + 0.065);
+    osc2.frequency.setValueAtTime(startF * (options.isNode ? 1.004 : 0.5), time);
+    osc2.frequency.exponentialRampToValueAtTime(targetF * (options.isNode ? 1.004 : 0.5), time + 0.065);
+  } else {
+    osc1.frequency.setValueAtTime(targetF, time);
+    osc2.frequency.setValueAtTime(targetF * (options.isNode ? 1.004 : 0.5), time);
+  }
+  attachFmWarp(ctx, osc1, targetF, time, 0.25);
 
   // Subtle detune grows with drift
   osc1.detune.setValueAtTime(-5 - drift * 18, time);
@@ -307,36 +361,49 @@ export function triggerBassOrPluck(
   const release = ((options.isNode ? 0.35 : 0.18) + drift * 1.1) * decayScale;
   const totalDur = attack + release;
 
-  // Filter envelope
+  // 303-Style Filter envelope + Accent boost
   const cutoffNorm = options.isNode ? state.filterCutoffNorm : state.bassCutoff;
   const baseCutoff = (tone === 'sub' && !options.isNode ? 95 : 140) + cutoffNorm * 1400;
+  const envModScale = options.isNode ? 0.65 : 0.25 + state.bassEnvMod * 1.45;
   const envBoost =
-    !options.isNode && tone === 'acid' ? 3400 : options.accent ? 2600 : 1400;
+    (!options.isNode && tone === 'acid' ? 3600 : 2200) *
+    envModScale *
+    (options.accent ? 1.55 : 1.0);
   const peakCutoff = baseCutoff + envBoost * (0.35 + cutoffNorm * 0.75);
+  const envDecayDur = options.isNode
+    ? totalDur
+    : Math.max(0.05, (0.06 + state.bassEnvDecay * 0.42) * (options.accent ? 1.25 : 1.0));
   filter.type = 'lowpass';
   filter.Q.setValueAtTime(
-    !options.isNode && tone === 'acid' ? 8.5 + cutoffNorm * 5 : 3.2 + cutoffNorm * 4.5,
+    (!options.isNode && tone === 'acid' ? 8.5 + cutoffNorm * 5 : 3.2 + cutoffNorm * 4.5) +
+      (options.accent ? 4.0 : 0),
     time
   );
   filter.frequency.setValueAtTime(baseCutoff, time);
-  filter.frequency.exponentialRampToValueAtTime(Math.max(80, peakCutoff), time + attack + 0.015);
-  filter.frequency.exponentialRampToValueAtTime(Math.max(80, baseCutoff), time + totalDur);
+  filter.frequency.exponentialRampToValueAtTime(Math.max(80, peakCutoff), time + attack + 0.012);
+  filter.frequency.exponentialRampToValueAtTime(Math.max(80, baseCutoff), time + Math.min(totalDur, attack + envDecayDur));
 
   const chLvl = options.isNode ? state.levels.orbits : state.levels.bass;
   if (chLvl <= 0.001) return;
-  const peakGain = (options.isNode ? 0.16 : options.accent ? 0.28 : 0.2) * chLvl;
+  const peakGain = (options.isNode ? 0.16 : options.accent ? 0.3 : 0.2) * chLvl;
   env.gain.setValueAtTime(0.0008, time);
   env.gain.linearRampToValueAtTime(peakGain, time + attack);
   env.gain.exponentialRampToValueAtTime(0.0008, time + totalDur);
 
-  osc1.connect(filter);
-  osc2.connect(filter);
+  const foldCurve = !options.isNode ? getWavefoldCurve(state.bassWavefold) : null;
+  if (foldCurve) {
+    const folder = ctx.createWaveShaper();
+    folder.curve = foldCurve;
+    osc1.connect(folder);
+    osc2.connect(folder);
+    folder.connect(filter);
+  } else {
+    osc1.connect(filter);
+    osc2.connect(filter);
+  }
   filter.connect(env);
   env.connect(engine.sidechainBus);
-  env.connect(engine.delaySend);
-  if (options.isNode || drift > 0.25) {
-    env.connect(engine.reverbSend);
-  }
+  engine.connectDubSends(env, options.isNode ? 'lead' : 'bass');
 
   osc1.start(time);
   osc2.start(time);
@@ -543,8 +610,7 @@ export function triggerLeadNote(
   osc2.connect(filter);
   filter.connect(env);
   env.connect(engine.sidechainBus);
-  env.connect(engine.delaySend);
-  env.connect(engine.reverbSend);
+  engine.connectDubSends(env, 'lead');
 
   osc1.start(time);
   osc2.start(time);
@@ -576,8 +642,7 @@ export function triggerChordStab(engine: AudioEngine, time: number): void {
 
   filter.connect(env);
   env.connect(engine.sidechainBus);
-  env.connect(engine.delaySend);
-  env.connect(engine.reverbSend);
+  engine.connectDubSends(env, 'stab');
 
   intervals.forEach((semi, idx) => {
     const osc = ctx.createOscillator();

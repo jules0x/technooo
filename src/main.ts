@@ -6,7 +6,7 @@ import { midiToNoteName, scaleIndexToMidi } from './audio/theory';
 import { canRedoBass, canUndoBass } from './state/shuffle';
 import { DroneBed } from './audio/voices';
 import { setupControls } from './input/controls';
-import { MuteChannel, PatternInst, state } from './state/store';
+import { DubChannel, MuteChannel, PatternInst, state } from './state/store';
 import { startCanvasRenderer } from './ui/canvas';
 
 const canvas = document.getElementById('stage') as HTMLCanvasElement;
@@ -127,6 +127,107 @@ function updateHud(): void {
   syncKnob('knob-delay-fb', 'val-knob-delay-fb', state.delayFeedback / 0.85, `${Math.round(state.delayFeedback * 100)}%`);
   syncKnob('knob-bass-cutoff', 'val-knob-bass-cutoff', state.bassCutoff, `${Math.round(state.bassCutoff * 100)}%`);
   syncKnob('knob-bass-decay', 'val-knob-bass-decay', state.bassDecay, `${Math.round(state.bassDecay * 100)}%`);
+
+  const djLabel =
+    Math.abs(state.djFilter - 0.5) < 0.02
+      ? 'BYP'
+      : state.djFilter < 0.5
+        ? `LP ${Math.round((0.5 - state.djFilter) * 200)}%`
+        : `HP ${Math.round((state.djFilter - 0.5) * 200)}%`;
+  syncKnob('knob-dj-filter', 'val-knob-dj-filter', state.djFilter, djLabel);
+
+  const fmtEqDb = (val: number, killed: boolean): string => {
+    if (killed) return 'KILL';
+    if (val <= 0.02) return '-∞';
+    if (val <= 0.75) {
+      const db = Math.round(((val - 0.75) / 0.75) * 24);
+      return `${db}dB`;
+    }
+    const db = Math.round(((val - 0.75) / 0.25) * 5);
+    return db > 0 ? `+${db}dB` : '0dB';
+  };
+  syncKnob('knob-eq-low', 'val-knob-eq-low', state.eqLow, fmtEqDb(state.eqLow, state.eqKill.low));
+  syncKnob('knob-eq-mid', 'val-knob-eq-mid', state.eqMid, fmtEqDb(state.eqMid, state.eqKill.mid));
+  syncKnob('knob-eq-high', 'val-knob-eq-high', state.eqHigh, fmtEqDb(state.eqHigh, state.eqKill.high));
+
+  (['low', 'mid', 'high'] as const).forEach((band) => {
+    document.getElementById(`btn-kill-${band}`)?.classList.toggle('killed', state.eqKill[band]);
+  });
+
+  const sceneXfader = document.getElementById('scene-xfader') as HTMLInputElement | null;
+  if (sceneXfader) sceneXfader.value = String(Math.round(state.sceneXfade * 100));
+  const oledDj = document.getElementById('oled-dj');
+  if (oledDj) {
+    oledDj.textContent = `DJ FLT ${djLabel} · EQ ${fmtEqDb(state.eqLow, state.eqKill.low)}/${fmtEqDb(state.eqMid, state.eqKill.mid)}/${fmtEqDb(state.eqHigh, state.eqKill.high)}`;
+  }
+  const oledScene = document.getElementById('oled-scene');
+  if (oledScene) {
+    oledScene.textContent = `SCENE A ◄── ${Math.round(state.sceneXfade * 100)}% ──► B`;
+  }
+
+  syncKnob('knob-comb-mix', 'val-knob-comb-mix', state.combMix, `${Math.round(state.combMix * 100)}%`);
+  syncKnob('knob-comb-tune', 'val-knob-comb-tune', state.combTune, `${Math.round(1 + state.combTune * 29)}ms`);
+  syncKnob('knob-comb-fb', 'val-knob-comb-fb', state.combFeedback, `${Math.round(state.combFeedback * 100)}%`);
+  syncKnob('knob-gate-mix', 'val-knob-gate-mix', state.gatedReverbMix, `${Math.round(state.gatedReverbMix * 100)}%`);
+  syncKnob('knob-gate-time', 'val-knob-gate-time', state.gatedReverbTime, `${Math.round(40 + state.gatedReverbTime * 260)}ms`);
+
+  const ppBtn = document.getElementById('btn-ping-pong');
+  if (ppBtn) {
+    ppBtn.classList.toggle('playing', state.pingPong);
+    ppBtn.textContent = `PING-PONG: ${state.pingPong ? 'ON' : 'OFF'}`;
+  }
+
+  document.querySelectorAll<HTMLInputElement>('[data-dub-delay]').forEach((inp) => {
+    const ch = inp.dataset.dubDelay as DubChannel;
+    inp.value = String(Math.round(state.dubDelaySend[ch] * 100));
+  });
+  document.querySelectorAll<HTMLInputElement>('[data-dub-reverb]').forEach((inp) => {
+    const ch = inp.dataset.dubReverb as DubChannel;
+    inp.value = String(Math.round(state.dubReverbSend[ch] * 100));
+  });
+
+  syncSegGroup('#grp-lfo2-shape .seg-btn', 'lfo2Shape', state.lfo2Shape);
+  syncSegGroup('#grp-lfo2-dest .seg-btn', 'lfo2Dest', state.lfo2Dest);
+  syncSegGroup('#grp-sh-rate .seg-btn', 'shRate', state.shRate);
+  syncSegGroup('#grp-sh-dest .seg-btn', 'shDest', state.shDest);
+  syncSegGroup('#grp-envfol-src .seg-btn', 'envfolSrc', state.envFolSource);
+  syncSegGroup('#grp-envfol-dst .seg-btn', 'envfolDst', state.envFolDest);
+
+  const lfo2Hz = 0.1 * Math.pow(120, state.lfo2Rate);
+  syncKnob('knob-lfo2-rate', 'val-knob-lfo2-rate', state.lfo2Rate, `${lfo2Hz.toFixed(1)}Hz`);
+  syncKnob('knob-lfo2-depth', 'val-knob-lfo2-depth', state.lfo2Depth, `${Math.round(state.lfo2Depth * 100)}%`);
+  syncKnob('knob-sh-depth', 'val-knob-sh-depth', state.shDepth, `${Math.round(state.shDepth * 100)}%`);
+  syncKnob('knob-env-fol', 'val-knob-env-fol', state.envFolAmount, `${Math.round(state.envFolAmount * 100)}%`);
+  const oledMod2 = document.getElementById('oled-mod2');
+  if (oledMod2) {
+    oledMod2.textContent = `LFO2 ${state.lfo2Shape.slice(0, 3).toUpperCase()} ${lfo2Hz.toFixed(1)}Hz → ${state.lfo2Dest.toUpperCase()} ${Math.round(state.lfo2Depth * 100)}%`;
+  }
+
+  syncKnob('knob-bass-envmod', 'val-knob-bass-envmod', state.bassEnvMod, `${Math.round(state.bassEnvMod * 100)}%`);
+  syncKnob('knob-bass-envdec', 'val-knob-bass-envdec', state.bassEnvDecay, `${Math.round(state.bassEnvDecay * 100)}%`);
+  syncKnob('knob-bass-fold', 'val-knob-bass-fold', state.bassWavefold, `${Math.round(state.bassWavefold * 100)}%`);
+  syncKnob('knob-kick-sweep', 'val-knob-kick-sweep', state.kickPitchDecay, `${Math.round(state.kickPitchDecay * 100)}%`);
+  syncKnob('knob-kick-punch', 'val-knob-kick-punch', state.kickPunch, `${Math.round(state.kickPunch * 100)}%`);
+  syncKnob('knob-hat-decay', 'val-knob-hat-decay', state.hatDecay, `${Math.round(state.hatDecay * 100)}%`);
+  syncKnob('knob-clap-snap', 'val-knob-clap-snap', state.clapSnap, `${Math.round(state.clapSnap * 100)}%`);
+  syncKnob('knob-perc-fm', 'val-knob-perc-fm', state.percFmIndex, `${Math.round(state.percFmIndex * 100)}%`);
+  syncKnob('knob-turing-mutate', 'val-knob-turing-mutate', state.turingMutate, `${Math.round(state.turingMutate * 100)}%`);
+  syncKnob('knob-ratchet-prob', 'val-knob-ratchet-prob', state.ratchetProb, `${Math.round(state.ratchetProb * 100)}%`);
+
+  const turingBtn = document.getElementById('btn-turing-toggle');
+  if (turingBtn) {
+    turingBtn.classList.toggle('playing', state.turingEnabled);
+    turingBtn.textContent = `TURING: ${state.turingEnabled ? 'ON' : 'OFF'}`;
+  }
+  syncSegGroup('#grp-turing-target .seg-btn', 'turingTarget', state.turingTarget);
+  const oledTuring = document.getElementById('oled-turing');
+  if (oledTuring) {
+    oledTuring.textContent = `TURING ${state.turingEnabled ? 'ON' : 'OFF'} · MUTATE ${Math.round(state.turingMutate * 100)}% → ${state.turingTarget.toUpperCase()}`;
+  }
+  (Object.keys(state.trackLengths) as (keyof typeof state.trackLengths)[]).forEach((k) => {
+    const el = document.getElementById(`val-poly-${k}`);
+    if (el) el.textContent = String(state.trackLengths[k]);
+  });
 
   const syncFader = (id: string, valId: string, norm: number) => {
     const el = document.getElementById(id) as HTMLInputElement | null;

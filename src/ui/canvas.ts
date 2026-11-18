@@ -45,7 +45,25 @@ export function startCanvasRenderer(canvas: HTMLCanvasElement): void {
   window.addEventListener('resize', resize);
   new ResizeObserver(resize).observe(canvas);
 
+  let lastPlayBar = -1;
+  let lastPlaying = false;
+
   const render = () => {
+    if (state.currentBar !== lastPlayBar || state.playing !== lastPlaying) {
+      lastPlayBar = state.currentBar;
+      lastPlaying = state.playing;
+      (['kick', 'perc', 'bass', 'lead'] as const).forEach((inst) => {
+        const cfg = state.patterns[inst];
+        const playingBarIdx = state.currentBar % cfg.length;
+        document
+          .querySelectorAll<HTMLButtonElement>(`[data-pat-seq="${inst}"] .pat-seq-btn`)
+          .forEach((btn) => {
+            const idx = Number(btn.dataset.seqIdx);
+            btn.classList.toggle('playing', state.playing && idx === playingBarIdx && idx < cfg.length);
+          });
+      });
+    }
+
     const w = Math.max(320, canvas.clientWidth);
     const h = Math.max(240, canvas.clientHeight);
     const layout = getStageLayout(w, h);
@@ -262,9 +280,11 @@ export function startCanvasRenderer(canvas: HTMLCanvasElement): void {
         const cxCell = gridX + s * cellW + 2;
         const cw = cellW - 4;
         const active = row.steps[s];
-        const isPlayhead = state.playing && s === state.currentStep;
+        const trackLen = state.trackLengths[row.key];
+        const inTrack = s < trackLen;
+        const isPlayhead = state.playing && s === state.currentStep % trackLen;
 
-        const alpha = isMuted ? 0.18 : isPlayhead ? 0.95 : 0.65;
+        const alpha = isMuted || !inTrack ? 0.16 : isPlayhead ? 0.95 : 0.65;
         ctx.fillStyle = active
           ? `rgba(${row.color}, ${alpha})`
           : isPlayhead
@@ -272,12 +292,27 @@ export function startCanvasRenderer(canvas: HTMLCanvasElement): void {
             : s % 4 === 0
               ? 'rgba(255, 255, 255, 0.06)'
               : 'rgba(255, 255, 255, 0.025)';
-        ctx.strokeStyle = isPlayhead ? '#ffffff' : 'rgba(255, 255, 255, 0.08)';
+        ctx.strokeStyle = isPlayhead
+          ? '#ffffff'
+          : !inTrack
+            ? 'rgba(255, 255, 255, 0.03)'
+            : 'rgba(255, 255, 255, 0.08)';
         ctx.lineWidth = 1;
         ctx.beginPath();
         ctx.roundRect(cxCell, ry, cw, rowH, 3);
         ctx.fill();
         ctx.stroke();
+
+        if (row.key === 'perc' || row.key === 'hat' || row.key === 'clap') {
+          const rCount = state.ratchetSteps[row.key][s] ?? 1;
+          if (rCount > 1) {
+            ctx.fillStyle = '#fde047';
+            ctx.font = '700 7px ui-monospace, monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText(`${rCount}x`, cxCell + cw / 2, ry + rowH / 2 + 2.5);
+            ctx.textAlign = 'left';
+          }
+        }
       }
     });
 
@@ -463,6 +498,18 @@ export function startCanvasRenderer(canvas: HTMLCanvasElement): void {
       ctx.textAlign = 'center';
       ctx.fillText(name, bx + bw / 2, Math.min(bm.gridY + bm.gridH - 4, by + 11));
       ctx.textAlign = 'left';
+
+      // 303 Accent (amber dot) & Slide (cyan underline) indicators
+      if (state.bassAccents[s]) {
+        ctx.fillStyle = '#f59e0b';
+        ctx.beginPath();
+        ctx.arc(bx + bw / 2, bm.gridY + 5, 2.5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      if (state.bassSlides[s]) {
+        ctx.fillStyle = '#22d3ee';
+        ctx.fillRect(bx + 3, bm.gridY + bm.gridH - 3, bw - 6, 2);
+      }
     });
 
     // =========================================================
